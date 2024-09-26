@@ -1,10 +1,16 @@
-﻿namespace BillioIntegrationTest
+﻿namespace BillioIntegrationTest;
+
+internal class Program
 {
-    internal class Program
+    private static readonly TimeOnly Midnight = TimeOnly.FromTimeSpan(TimeSpan.Zero);
+    private static readonly TimeOnly Noon = TimeOnly.FromTimeSpan(TimeSpan.FromHours(12));
+
+    [Test]
+    public async Task IsMorning()
     {
-        static void Main(string[] args)
-        {
-            Console.WriteLine("Hello, World!");
-        }
+        var time = TimeOnly.FromTimeSpan(TimeSpan.FromHours(10));
+
+        await Assert.That(time).IsAfterOrEqualTo(Midnight)
+            .And.IsBefore(Noon);
     }
 }
