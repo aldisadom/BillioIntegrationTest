@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "BillioIntegrationTest": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
