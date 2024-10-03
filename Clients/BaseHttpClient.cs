@@ -48,7 +48,7 @@ public class BaseHttpClient
             if (error is null)
                 errorMessage += $", with body: {body}";
             else
-                errorMessage += $", with message: {error.ErrorMessage}";
+                errorMessage += $", with message: {error.Message}, {error.ExtendedMessage}";
 
         }
         catch (Exception)
