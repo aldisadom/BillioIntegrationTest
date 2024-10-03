@@ -13,4 +13,9 @@ public class UserAddRequest
     [Required]
     [MinLength(8)]
     public string Password { get; set; } = string.Empty;
+
+    public override string ToString()
+    {
+        return $"Name: {Name}, LastName: {LastName}, Email: {Email}, Password: {Password}";
+    }
 }
