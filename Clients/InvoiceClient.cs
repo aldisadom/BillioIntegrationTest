@@ -2,6 +2,7 @@
 using BillioIntegrationTest.Contracts.Responses;
 using BillioIntegrationTest.Contracts.Responses.Invoice;
 using BillioIntegrationTest.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace BillioIntegrationTest.Clients;
 
@@ -17,7 +18,7 @@ public class InvoiceClient : IInvoiceClient
         _userHttpClient = new(billioUrl);
     }
 
-    public async Task<InvoiceListResponse> Get()
+    public async Task<Result<InvoiceListResponse>> Get()
     {
         return await _userHttpClient.GetAsync<InvoiceListResponse>($"{_controller}");
     }
@@ -31,23 +32,23 @@ public class InvoiceClient : IInvoiceClient
         return await _userHttpClient.GetAsync<InvoiceDataListResponse>("{_controller}", headers);
     }
     */
-    public async Task<InvoiceResponse?> Get(Guid id)
+    public async Task<Result<InvoiceResponse?>> Get(Guid id)
     {
-        return await _userHttpClient.GetAsync<InvoiceResponse>($"{_controller}/{id}");
+        return await _userHttpClient.GetAsync<InvoiceResponse?>($"{_controller}/{id}");
     }
 
-    public async Task<AddResponse> Add(InvoiceAddRequest invoice)
+    public async Task<Result<AddResponse>> Add(InvoiceAddRequest invoice)
     {
         return await _userHttpClient.PostAsync<InvoiceAddRequest, AddResponse>($"{_controller}", invoice);
     }
 
-    public async Task Update(InvoiceUpdateRequest invoice)
+    public async Task<Result<bool>> Update(InvoiceUpdateRequest invoice)
     {
-        await _userHttpClient.PutAsync($"{_controller}", invoice);
+        return await _userHttpClient.PutAsync($"{_controller}", invoice);
     }
 
-    public async Task Delete(Guid id)
+    public async Task<Result<bool>> Delete(Guid id)
     {
-        await _userHttpClient.DeleteAsync($"{_controller}/{id}");
+        return await _userHttpClient.DeleteAsync($"{_controller}/{id}");
     }
 }

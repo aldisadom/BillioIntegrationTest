@@ -17,12 +17,12 @@ public class SellerClient : ISellerClient
         _userHttpClient = new(billioUrl);
     }
 
-    public async Task<SellerListResponse> Get()
+    public async Task<Result<SellerListResponse>> Get()
     {
         return await _userHttpClient.GetAsync<SellerListResponse>($"{_controller}");
     }
 
-    public async Task<SellerListResponse> Get(SellerGetRequest request)
+    public async Task<Result<SellerListResponse>> Get(SellerGetRequest request)
     {
         Dictionary<string, string> headers = new()
         {
@@ -31,23 +31,23 @@ public class SellerClient : ISellerClient
         return await _userHttpClient.GetAsync<SellerListResponse>($"{_controller}", headers);
     }
 
-    public async Task<SellerResponse?> Get(Guid id)
+    public async Task<Result<SellerResponse?>> Get(Guid id)
     {
-        return await _userHttpClient.GetAsync<SellerResponse>($"{_controller}/{id}");
+        return await _userHttpClient.GetAsync<SellerResponse?>($"{_controller}/{id}");
     }
 
-    public async Task<AddResponse> Add(SellerAddRequest seller)
+    public async Task<Result<AddResponse>> Add(SellerAddRequest seller)
     {
         return await _userHttpClient.PostAsync<SellerAddRequest, AddResponse>($"{_controller}", seller);
     }
 
-    public async Task Update(SellerUpdateRequest seller)
+    public async Task<Result<bool>> Update(SellerUpdateRequest seller)
     {
-        await _userHttpClient.PutAsync($"{_controller}", seller);
+        return await _userHttpClient.PutAsync($"{_controller}", seller);
     }
 
-    public async Task Delete(Guid id)
+    public async Task<Result<bool>> Delete(Guid id)
     {
-        await _userHttpClient.DeleteAsync($"{_controller}/{id}");
+        return await _userHttpClient.DeleteAsync($"{_controller}/{id}");
     }
 }

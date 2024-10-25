@@ -2,6 +2,7 @@
 using BillioIntegrationTest.Contracts.Responses;
 using BillioIntegrationTest.Contracts.Responses.Customer;
 using BillioIntegrationTest.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace BillioIntegrationTest.Clients;
 
@@ -17,12 +18,12 @@ public class CustomerClient : ICustomerClient
         _userHttpClient = new(billioUrl);
     }
 
-    public async Task<CustomerListResponse> Get()
+    public async Task<Result<CustomerListResponse>> Get()
     {
         return await _userHttpClient.GetAsync<CustomerListResponse>($"{_controller}");
     }
 
-    public async Task<CustomerListResponse> Get(CustomerGetRequest request)
+    public async Task<Result<CustomerListResponse>> Get(CustomerGetRequest request)
     {
         Dictionary<string, string> headers = new()
         {
@@ -31,23 +32,23 @@ public class CustomerClient : ICustomerClient
         return await _userHttpClient.GetAsync<CustomerListResponse>($"{_controller}", headers);
     }
 
-    public async Task<CustomerResponse?> Get(Guid id)
+    public async Task<Result<CustomerResponse?>> Get(Guid id)
     {
-        return await _userHttpClient.GetAsync<CustomerResponse>($"{_controller}/{id}");
+        return await _userHttpClient.GetAsync<CustomerResponse?>($"{_controller}/{id}");
     }
 
-    public async Task<AddResponse> Add(CustomerAddRequest customer)
+    public async Task<Result<AddResponse>> Add(CustomerAddRequest customer)
     {
         return await _userHttpClient.PostAsync<CustomerAddRequest, AddResponse>($"{_controller}", customer);
     }
 
-    public async Task Update(CustomerUpdateRequest customer)
+    public async Task<Result<bool>> Update(CustomerUpdateRequest customer)
     {
-        await _userHttpClient.PutAsync($"{_controller}", customer);
+        return await _userHttpClient.PutAsync($"{_controller}", customer);
     }
 
-    public async Task Delete(Guid id)
+    public async Task<Result<bool>> Delete(Guid id)
     {
-        await _userHttpClient.DeleteAsync($"{_controller}/{id}");
+        return await _userHttpClient.DeleteAsync($"{_controller}/{id}");
     }
 }

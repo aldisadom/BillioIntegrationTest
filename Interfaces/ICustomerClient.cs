@@ -1,4 +1,5 @@
-﻿using BillioIntegrationTest.Contracts.Requests.Customer;
+﻿using BillioIntegrationTest.Clients;
+using BillioIntegrationTest.Contracts.Requests.Customer;
 using BillioIntegrationTest.Contracts.Responses;
 using BillioIntegrationTest.Contracts.Responses.Customer;
 
@@ -6,10 +7,10 @@ namespace BillioIntegrationTest.Interfaces;
 
 public interface ICustomerClient
 {
-    Task<AddResponse> Add(CustomerAddRequest customer);
-    Task Delete(Guid id);
-    Task<CustomerListResponse> Get();
-    Task<CustomerListResponse> Get(CustomerGetRequest request);
-    Task<CustomerResponse?> Get(Guid id);
-    Task Update(CustomerUpdateRequest customer);
+    Task<Result<AddResponse>> Add(CustomerAddRequest customer);
+    Task<Result<bool>> Delete(Guid id);
+    Task<Result<CustomerListResponse>> Get();
+    Task<Result<CustomerListResponse>> Get(CustomerGetRequest request);
+    Task<Result<CustomerResponse?>> Get(Guid id);
+    Task<Result<bool>> Update(CustomerUpdateRequest customer);
 }
