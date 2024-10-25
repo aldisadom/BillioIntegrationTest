@@ -1,15 +1,36 @@
-﻿namespace BillioIntegrationTest.Models;
+﻿using System.Net;
+
+namespace BillioIntegrationTest.Models;
 
 public class ErrorModel
 {
-    public int StatusCode { get; set; }
+    public HttpStatusCode StatusCode { get; set; }
     public string Message { get; set; }
-    public string ErrorLocation { get; set; }
+    public string ExtendedMessage { get; set; }
 
-    public ErrorModel(string errorTypeMessage, int statusCode, Exception e)
+    public ErrorModel()
     {
-        Message = errorTypeMessage + ": " + e.Message;
+        Message = string.Empty;
+        ExtendedMessage = string.Empty;
+    }
+
+    public ErrorModel(string message, string extendedMessage, HttpStatusCode statusCode)
+    {
+        Message = message;
+        ExtendedMessage = extendedMessage;
         StatusCode = statusCode;
-        ErrorLocation = (e.StackTrace != null ? e.StackTrace.Split(" in ")[0].Replace("  at ", "") : "").Trim();
+    }
+
+    public override string ToString()
+    {
+        string errorMessage = $"Error status code: {StatusCode}";
+
+        if (!string.IsNullOrEmpty(Message))
+        {
+            errorMessage += $", message: " + Message;
+            if (!string.IsNullOrEmpty(Message))
+                errorMessage += $", extended message: " + ExtendedMessage;
+        }
+        return errorMessage;
     }
 }

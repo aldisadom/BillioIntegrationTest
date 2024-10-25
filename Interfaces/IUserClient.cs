@@ -1,4 +1,5 @@
-﻿using BillioIntegrationTest.Contracts.Requests.User;
+﻿using BillioIntegrationTest.Clients;
+using BillioIntegrationTest.Contracts.Requests.User;
 using BillioIntegrationTest.Contracts.Responses;
 using BillioIntegrationTest.Contracts.Responses.User;
 
@@ -6,10 +7,10 @@ namespace BillioIntegrationTest.Interfaces;
 
 public interface IUserClient
 {
-    Task<UserLoginResponse> Login(UserLoginRequest user);
-    Task<UserListResponse> Get();
-    Task<UserResponse?> Get(Guid id);
-    Task<AddResponse> Add(UserAddRequest user);
-    Task Update(UserUpdateRequest user);
-    Task Delete(Guid id);
+    Task<Result<UserLoginResponse>> Login(UserLoginRequest user);
+    Task<Result<UserListResponse>> Get();
+    Task<Result<UserResponse?>> Get(Guid id);
+    Task<Result<AddResponse>> Add(UserAddRequest user);
+    Task<Result<bool>> Update(UserUpdateRequest user);
+    Task<Result<bool>> Delete(Guid id);
 }

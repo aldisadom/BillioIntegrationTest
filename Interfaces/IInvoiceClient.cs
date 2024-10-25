@@ -1,4 +1,5 @@
-﻿using BillioIntegrationTest.Contracts.Requests.Invoice;
+﻿using BillioIntegrationTest.Clients;
+using BillioIntegrationTest.Contracts.Requests.Invoice;
 using BillioIntegrationTest.Contracts.Responses;
 using BillioIntegrationTest.Contracts.Responses.Invoice;
 
@@ -6,10 +7,10 @@ namespace BillioIntegrationTest.Interfaces
 {
     public interface IInvoiceClient
     {
-        Task<AddResponse> Add(InvoiceAddRequest item);
-        Task Delete(Guid id);
-        Task<InvoiceListResponse> Get();
-        Task<InvoiceResponse?> Get(Guid id);
-        Task Update(InvoiceUpdateRequest item);
+        Task<Result<AddResponse>> Add(InvoiceAddRequest item);
+        Task<Result<bool>> Delete(Guid id);
+        Task<Result<InvoiceListResponse>> Get();
+        Task<Result<InvoiceResponse?>> Get(Guid id);
+        Task<Result<bool>> Update(InvoiceUpdateRequest item);
     }
 }
