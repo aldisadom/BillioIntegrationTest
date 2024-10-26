@@ -74,7 +74,7 @@ public class BaseHttpClient
     }
     public async Task<Result<T>> GetAsync<T>(string endpoint, Dictionary<string, string>? queryParameters = null, Dictionary<string, string>? headerParameters = null)
     {
-        HttpClient client = new ();
+        HttpClient client = new();
 
         //configure
         Uri url = GenerateUrl(endpoint, queryParameters);
@@ -95,7 +95,7 @@ public class BaseHttpClient
 
     public async Task<Result<T2>> PostAsync<T1, T2>(string endpoint, T1 data, Dictionary<string, string>? queryParameters = null, Dictionary<string, string>? headerParameters = null)
     {
-        HttpClient client = new ();
+        HttpClient client = new();
 
         //configure
         Uri url = GenerateUrl(endpoint, queryParameters);
@@ -119,7 +119,7 @@ public class BaseHttpClient
 
     public async Task<Result<bool>> PutAsync<T>(string endpoint, T data, Dictionary<string, string>? queryParameters = null, Dictionary<string, string>? headerParameters = null)
     {
-        HttpClient client = new ();
+        HttpClient client = new();
 
         //configure
         Uri url = GenerateUrl(endpoint, queryParameters);
@@ -143,7 +143,7 @@ public class BaseHttpClient
 
     public async Task<Result<bool>> DeleteAsync(string endpoint, Dictionary<string, string>? queryParameters = null, Dictionary<string, string>? headerParameters = null)
     {
-        HttpClient client = new ();
+        HttpClient client = new();
 
         //configure
         Uri url = GenerateUrl(endpoint, queryParameters);

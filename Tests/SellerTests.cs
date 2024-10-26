@@ -1,22 +1,11 @@
-﻿using BillioIntegrationTest;
-using BillioIntegrationTest.Clients;
+﻿using BillioIntegrationTest.Clients;
 using BillioIntegrationTest.Contracts.Requests.Seller;
-using BillioIntegrationTest.Contracts.Requests.User;
 using BillioIntegrationTest.Contracts.Responses;
 using BillioIntegrationTest.Contracts.Responses.Seller;
-using BillioIntegrationTest.Contracts.Responses.User;
-using BillioIntegrationTest.Exceptions;
-using BillioIntegrationTest.Interfaces;
 using BillioIntegrationTest.Models;
-using LanguageExt.Pipes;
-using Microsoft.Extensions.Logging;
-using Serilog.Extensions.Logging;
-using System.IO;
 using System.Net;
-using System.Numerics;
 using TUnit.Assertions.Extensions.Generic;
 using TUnit.Core.Extensions;
-using TUnit.Engine.Extensions;
 
 namespace BillioIntegrationTest.Tests;
 
@@ -24,7 +13,7 @@ public static class SellerTestDataSources
 {
     public static IEnumerable<TestCaseModel<SellerModel>> AddData()
     {
-        yield return new ()
+        yield return new()
         {
             TestCase = Emails().First(),
             Data = new()
@@ -32,7 +21,7 @@ public static class SellerTestDataSources
                 UserEmail = UserTestDataSources.Emails().First(),
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -41,7 +30,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = Emails().ToArray()[1],
             Data = new()
@@ -49,7 +38,7 @@ public static class SellerTestDataSources
                 UserEmail = UserTestDataSources.Emails().ToArray()[1],
                 Email = Emails().ToArray()[1],
                 CompanyName = "Stark Supply Co",
-                CompanyNumber = "SSC",
+                CompanyNumber = "CN1234599",
                 Street = "Northern Road 48",
                 City = "Winterfell",
                 State = "The North",
@@ -61,7 +50,7 @@ public static class SellerTestDataSources
     }
     public static IEnumerable<TestCaseModel<SellerModel>> AddDataInvalid()
     {
-        yield return new ()
+        yield return new()
         {
             TestCase = "No email address",
             Error = new ErrorModel()
@@ -74,7 +63,7 @@ public static class SellerTestDataSources
             {
                 UserEmail = UserTestDataSources.Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -83,7 +72,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No company name",
             Error = new ErrorModel()
@@ -96,7 +85,7 @@ public static class SellerTestDataSources
             {
                 UserEmail = UserTestDataSources.Emails().First(),
                 Email = Emails().First(),
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -105,7 +94,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No company number",
             Error = new ErrorModel()
@@ -127,7 +116,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No street",
             Error = new ErrorModel()
@@ -141,7 +130,7 @@ public static class SellerTestDataSources
                 UserEmail = UserTestDataSources.Emails().First(),
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 City = "Braavos",
                 State = "The Free Cities",
                 Phone = "+123450679",
@@ -149,7 +138,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No city",
             Error = new ErrorModel()
@@ -163,7 +152,7 @@ public static class SellerTestDataSources
                 UserEmail = UserTestDataSources.Emails().First(),
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 State = "The Free Cities",
                 Phone = "+123450679",
@@ -171,7 +160,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No state",
             Error = new ErrorModel()
@@ -185,7 +174,7 @@ public static class SellerTestDataSources
                 UserEmail = UserTestDataSources.Emails().First(),
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 Phone = "+123450679",
@@ -193,7 +182,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No phone",
             Error = new ErrorModel()
@@ -207,7 +196,7 @@ public static class SellerTestDataSources
                 UserEmail = UserTestDataSources.Emails().First(),
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -215,7 +204,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No bank name",
             Error = new ErrorModel()
@@ -229,7 +218,7 @@ public static class SellerTestDataSources
                 UserEmail = UserTestDataSources.Emails().First(),
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -237,7 +226,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No bank number",
             Error = new ErrorModel()
@@ -251,7 +240,7 @@ public static class SellerTestDataSources
                 UserEmail = UserTestDataSources.Emails().First(),
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -259,7 +248,7 @@ public static class SellerTestDataSources
                 BankName = "Draconiko"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No user",
             Error = new ErrorModel()
@@ -272,7 +261,7 @@ public static class SellerTestDataSources
             {
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -299,7 +288,7 @@ public static class SellerTestDataSources
                 Id = Guid.NewGuid(),
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -321,7 +310,7 @@ public static class SellerTestDataSources
             {
                 Id = default,
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -343,7 +332,7 @@ public static class SellerTestDataSources
             {
                 Id = default,
                 Email = Emails().First(),
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -388,7 +377,7 @@ public static class SellerTestDataSources
                 Id = default,
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 City = "Braavos",
                 State = "The Free Cities",
                 Phone = "+123450679",
@@ -410,7 +399,7 @@ public static class SellerTestDataSources
                 Id = default,
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 State = "The Free Cities",
                 Phone = "+123450679",
@@ -432,7 +421,7 @@ public static class SellerTestDataSources
                 Id = default,
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 Phone = "+123450679",
@@ -454,7 +443,7 @@ public static class SellerTestDataSources
                 Id = default,
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -476,7 +465,7 @@ public static class SellerTestDataSources
                 Id = default,
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -498,7 +487,7 @@ public static class SellerTestDataSources
                 Id = default,
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
-                CompanyNumber = "DD",
+                CompanyNumber = "CN1234569",
                 Street = "Main road 5",
                 City = "Braavos",
                 State = "The Free Cities",
@@ -513,16 +502,16 @@ public static class SellerTestDataSources
         yield return "dragon_delight@winter.com";
         yield return "stark_supply_co@winterfell.com";
     }
-    
+
 }
 
-partial class Tests
+public partial class Tests
 {
     private static readonly SellerClient _sellerClient = new();
 
     public static SellerModel GetSellerFromTest(string email)
     {
-        
+
         var addToBagTestContext = TestContext.Current!.GetTests(nameof(SellerAdd_Valid_Success));
 
         foreach (var bag in addToBagTestContext)
@@ -532,7 +521,7 @@ partial class Tests
                 var item = bag.ObjectBag[email];
                 if (item is null || item is not SellerModel)
                     continue;
-                
+
                 return (SellerModel)item;
             }
             catch
@@ -540,7 +529,7 @@ partial class Tests
 
             }
         }
-        
+
         throw new Exception($"Seller email not found in test data: {email}");
     }
 
@@ -561,7 +550,7 @@ partial class Tests
 
     [Test]
     [DependsOn(nameof(Seller_BeforeTests_DBEmpty))]
-    [MethodDataSource(typeof(SellerTestDataSources), nameof(SellerTestDataSources.AddData))]    
+    [MethodDataSource(typeof(SellerTestDataSources), nameof(SellerTestDataSources.AddData))]
     [DisplayName("Seller add, valid data: $testCase")]
     public async Task SellerAdd_Valid_Success(TestCaseModel<SellerModel> testCase)
     {
@@ -606,10 +595,10 @@ partial class Tests
         await Assert.That(getResponse!.BankName).IsEqualTo(addRequest.BankName);
         await Assert.That(getResponse!.BankNumber).IsEqualTo(addRequest.BankNumber);
 
-        SellerModel seller = new ()
+        SellerModel seller = new()
         {
             UserEmail = sellerModel.UserEmail,
-            Id = getResponse.Id,            
+            Id = getResponse.Id,
             Email = getResponse.Email,
             CompanyName = getResponse.CompanyName,
             CompanyNumber = getResponse.CompanyNumber,
@@ -627,7 +616,7 @@ partial class Tests
     [MethodDataSource(typeof(SellerTestDataSources), nameof(SellerTestDataSources.AddDataInvalid))]
     [DependsOn(nameof(SellerAdd_Valid_Success), [typeof(TestCaseModel<SellerModel>)])]
     [DisplayName("Seller add, invalid data: $testCase")]
-    public async Task Fix_SellerAdd_InValid_Fail(TestCaseModel<SellerModel> testCase)
+    public async Task SellerAdd_InValid_Fail(TestCaseModel<SellerModel> testCase)
     {
         SellerModel sellerModel = testCase.Data;
         SellerAddRequest addRequest = new()
@@ -662,7 +651,7 @@ partial class Tests
             UserId = GetUserFromTest(UserTestDataSources.Emails().First()).Id,
             Email = "delete@me.com",
             CompanyName = "Super deleters",
-            CompanyNumber = "DEL",
+            CompanyNumber = "CN000000",
             Street = "Unknown",
             City = "Empty",
             State = "Void",
@@ -712,6 +701,23 @@ partial class Tests
 
     [Test]
     [DependsOn(nameof(SellerDelete_Valid_Success))]
+    [DependsOn(nameof(CustomerAdd_Valid_Success))]
+    public async Task SellerDelete_WhenHaveSeller_Fail()
+    {
+        Guid id = GetSellerFromTest(SellerTestDataSources.Emails().First()).Id;
+
+        var deleteResponseResult = await _sellerClient.Delete(id);
+        ErrorModel error = deleteResponseResult.Match(
+            user => { throw new Exception(user.ToString()); },
+            error => { return error; }
+        );
+
+        ErrorModel expectedError = new("Validation failure", $"Can not delete (please clear all dependants) or update (item not found): seller_id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(SellerDelete_Valid_Success))]
     public async Task SellerGetAll_Valid_Success()
     {
         var listResponseResult = await _sellerClient.Get();
@@ -722,7 +728,7 @@ partial class Tests
 
         await Assert.That(listResponse.Sellers)
             .IsNotNull()
-            .And.HasCount().EqualTo(2);  
+            .And.HasCount().EqualTo(2);
     }
 
     [Test]
@@ -780,7 +786,7 @@ partial class Tests
     public async Task SellerUpdate_InValid_Fail(TestCaseModel<SellerModel> testCase)
     {
         SellerModel seller = testCase.Data;
-        SellerUpdateRequest updateRequest = new()        
+        SellerUpdateRequest updateRequest = new()
         {
             Id = seller.Id == default ? GetSellerFromTest(SellerTestDataSources.Emails().First()).Id : seller.Id,
             Email = seller.Email,
@@ -807,7 +813,7 @@ partial class Tests
     }
 
     [Test]
-    [After(Class)]
+    [DependsOn(nameof(CustomerDelete_AfterAll_Success))]
     public static async Task SellerDelete_AfterAll_Success()
     {
         var listResponseResult = await _sellerClient.Get();

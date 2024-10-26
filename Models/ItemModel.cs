@@ -1,8 +1,9 @@
-﻿namespace BillioIntegrationTest.Contracts.Requests.Item;
+﻿namespace BillioIntegrationTest.Contracts.Responses.Item;
 
-public record ItemUpdateRequest
+public record ItemModel
 {
     public Guid Id { get; set; }
+    public string CustomerEmail { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public decimal Quantity { get; set; }

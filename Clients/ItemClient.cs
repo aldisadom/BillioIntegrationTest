@@ -2,7 +2,6 @@
 using BillioIntegrationTest.Contracts.Responses;
 using BillioIntegrationTest.Contracts.Responses.Item;
 using BillioIntegrationTest.Interfaces;
-using Microsoft.Extensions.Logging;
 
 namespace BillioIntegrationTest.Clients;
 
