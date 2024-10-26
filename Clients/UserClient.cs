@@ -11,7 +11,7 @@ public class UserClient : IUserClient
     private readonly string _controller = "users";
 
     public UserClient()
-    {       
+    {
         string billioUrl = "https://localhost:8091";
 
         _userHttpClient = new(billioUrl);

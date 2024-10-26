@@ -1,21 +1,12 @@
-﻿using BillioIntegrationTest;
-using BillioIntegrationTest.Clients;
-using BillioIntegrationTest.Contracts.Requests.Seller;
+﻿using BillioIntegrationTest.Clients;
 using BillioIntegrationTest.Contracts.Requests.User;
 using BillioIntegrationTest.Contracts.Responses;
-using BillioIntegrationTest.Contracts.Responses.Seller;
 using BillioIntegrationTest.Contracts.Responses.User;
-using BillioIntegrationTest.Exceptions;
 using BillioIntegrationTest.Models;
 using LanguageExt;
-using LanguageExt.Pipes;
-using Newtonsoft.Json;
-using Serilog;
 using System.Net;
 using TUnit.Assertions.Extensions.Generic;
 using TUnit.Core.Extensions;
-using TUnit.Engine.Extensions;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace BillioIntegrationTest.Tests;
 
@@ -23,10 +14,10 @@ public static class UserTestDataSources
 {
     public static IEnumerable<TestCaseModel<UserAddRequest>> AddData()
     {
-        yield return new ()
+        yield return new()
         {
             TestCase = Emails().First(),
-            Data = new ()
+            Data = new()
             {
                 Email = Emails().First(),
                 Name = "Daenerys",
@@ -34,10 +25,10 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = Emails().ToArray()[1],
-            Data = new ()
+            Data = new()
             {
                 Email = Emails().ToArray()[1],
                 Name = "Jon",
@@ -49,7 +40,7 @@ public static class UserTestDataSources
 
     public static IEnumerable<TestCaseModel<UserAddRequest>> AddDataInvalid()
     {
-        yield return new ()
+        yield return new()
         {
             TestCase = "MotherOfDragons@hotmail.com already exists",
             Error = new ErrorModel()
@@ -66,7 +57,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "Password too short",
             Error = new ErrorModel()
@@ -83,7 +74,7 @@ public static class UserTestDataSources
                 Password = "passwor"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No email address",
             Error = new ErrorModel()
@@ -99,7 +90,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No name",
             Error = new ErrorModel()
@@ -115,7 +106,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No lastname",
             Error = new ErrorModel()
@@ -135,7 +126,7 @@ public static class UserTestDataSources
 
     public static IEnumerable<TestCaseModel<UserLoginRequest>> LoginDataInvalid()
     {
-        yield return new ()
+        yield return new()
         {
             TestCase = "Incorrect password for MotherOfDragons@hotmail.com",
             Error = new ErrorModel()
@@ -150,7 +141,7 @@ public static class UserTestDataSources
                 Password = "incorectpassword"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "Incorrect email address",
             Error = new ErrorModel()
@@ -165,7 +156,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No email",
             Error = new ErrorModel()
@@ -179,7 +170,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new ()
+        yield return new()
         {
             TestCase = "No password",
             Error = new ErrorModel()
@@ -252,17 +243,17 @@ public static class UserTestDataSources
     {
         yield return "MotherOfDragons@hotmail.com";
         yield return "WannabeStark@gmail.com";
-    }    
+    }
 }
 
-partial class Tests
+public partial class Tests
 {
     private static readonly UserClient _userClient = new();
 
     public static UserModel GetUserFromTest(string email)
-    {        
+    {
         var addToBagTestContext = TestContext.Current!.GetTests(nameof(UserAdd_Valid_Success));
-                
+
         foreach (var bag in addToBagTestContext)
         {
             try
@@ -277,7 +268,7 @@ partial class Tests
             {
             }
         }
-        
+
         throw new Exception($"User email not found in test data: {email}");
     }
 
@@ -285,6 +276,8 @@ partial class Tests
     [Before(Class)]
     public static async Task PrepareTestEnvironment()
     {
+        await ItemDelete_AfterAll_Success();
+        await CustomerDelete_AfterAll_Success();
         await SellerDelete_AfterAll_Success();
         await UserDelete_AfterAll_Success();
     }
@@ -413,6 +406,23 @@ partial class Tests
 
     [Test]
     [DependsOn(nameof(UserDelete_Valid_Success))]
+    [DependsOn(nameof(SellerAdd_Valid_Success))]
+    public async Task UserDelete_WhenHaveSeller_Fail()
+    {
+        Guid id = GetUserFromTest(UserTestDataSources.Emails().First()).Id;
+
+        var deleteResponseResult = await _userClient.Delete(id);
+        ErrorModel error = deleteResponseResult.Match(
+            user => { throw new Exception(user.ToString()); },
+            error => { return error; }
+        );
+
+        ErrorModel expectedError = new("Validation failure", $"Can not delete (please clear all dependants) or update (item not found): user_id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(UserDelete_Valid_Success))]
     public async Task UserGetAll_Valid_Success()
     {
         var listResponseResult = await _userClient.Get();
@@ -434,7 +444,7 @@ partial class Tests
     {
         UserModel user = GetUserFromTest(email);
 
-        UserLoginRequest loginRequest = new ()
+        UserLoginRequest loginRequest = new()
         {
             Email = user.Email,
             Password = user.Password,
@@ -531,7 +541,6 @@ partial class Tests
 
     [Test]
     [DependsOn(nameof(SellerDelete_AfterAll_Success))]
-    [After(Class)]
     public static async Task UserDelete_AfterAll_Success()
     {
         var listResponseResult = await _userClient.Get();
@@ -551,6 +560,4 @@ partial class Tests
             await Assert.That(deleteResponse).IsTrue();
         }
     }
-
-
 }

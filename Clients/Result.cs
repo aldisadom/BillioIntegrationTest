@@ -33,5 +33,5 @@ public readonly struct Result<T>
     public R Match<R>(
             Func<T, R> success,
             Func<ErrorModel, R> failure) =>
-        _success ? success(Value) : failure(Error);
+        _success ? success(Value!) : failure(Error!);
 }

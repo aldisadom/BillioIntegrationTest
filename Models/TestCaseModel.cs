@@ -1,14 +1,4 @@
-﻿using BillioIntegrationTest.Contracts.Responses;
-using LanguageExt.Common;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TUnit.Assertions.Extensions;
-
-namespace BillioIntegrationTest.Models;
+﻿namespace BillioIntegrationTest.Models;
 
 public class TestCaseModel<T>
 {
