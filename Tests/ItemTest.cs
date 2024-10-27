@@ -440,9 +440,9 @@ public partial class Tests
         ItemUpdateRequest updateRequest = new()
         {
             Id = itemModel.Id,
-            Name = itemModel.Name,
-            Quantity = itemModel.Quantity,
-            Price = itemModel.Price
+            Name = itemModel.Name + "_new",
+            Quantity = itemModel.Quantity + 999,
+            Price = itemModel.Price + 666
         };
 
         var updateResponseResult = await _itemClient.Update(updateRequest);
