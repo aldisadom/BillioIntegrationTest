@@ -742,15 +742,15 @@ public partial class Tests
         SellerUpdateRequest updateRequest = new()
         {
             Id = sellerModel.Id,
-            Email = sellerModel.Email,
-            CompanyName = sellerModel.CompanyName,
-            CompanyNumber = sellerModel.CompanyNumber,
-            Street = sellerModel.Street,
-            City = sellerModel.City,
-            State = sellerModel.State,
-            Phone = sellerModel.Phone,
-            BankName = sellerModel.BankName,
-            BankNumber = sellerModel.BankNumber
+            Email = sellerModel.Email + "_new",
+            CompanyName = sellerModel.CompanyName + "_new",
+            CompanyNumber = sellerModel.CompanyNumber + "_new",
+            Street = sellerModel.Street + "_new",
+            City = sellerModel.City + "_new",
+            State = sellerModel.State + "_new",
+            Phone = sellerModel.Phone + "_new",
+            BankName = sellerModel.BankName + "_new",
+            BankNumber = sellerModel.BankNumber + "_new"
         };
 
         var updateResponseResult = await _sellerClient.Update(updateRequest);

@@ -728,15 +728,15 @@ public partial class Tests
         CustomerUpdateRequest updateRequest = new()
         {
             Id = customerModel.Id,
-            Email = customerModel.Email,
-            CompanyName = customerModel.CompanyName,
-            CompanyNumber = customerModel.CompanyNumber,
-            Street = customerModel.Street,
-            City = customerModel.City,
-            State = customerModel.State,
-            Phone = customerModel.Phone,
-            InvoiceName = customerModel.InvoiceName,
-            InvoiceNumber = customerModel.InvoiceNumber
+            Email = customerModel.Email + "_new",
+            CompanyName = customerModel.CompanyName + "_new",
+            CompanyNumber = customerModel.CompanyNumber + "_new",
+            Street = customerModel.Street + "_new",
+            City = customerModel.City + "_new",
+            State = customerModel.State + "_new",
+            Phone = customerModel.Phone + "_new",
+            InvoiceName = customerModel.InvoiceName + "_new",
+            InvoiceNumber = customerModel.InvoiceNumber + 99
         };
 
         var updateResponseResult = await _customerClient.Update(updateRequest);

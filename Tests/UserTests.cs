@@ -489,8 +489,8 @@ public partial class Tests
         UserUpdateRequest updateRequest = new()
         {
             Id = user.Id,
-            Name = user.Name + "_new_" + "Name",
-            LastName = user.LastName + "_new_" + "LastName",
+            Name = user.Name + "_new",
+            LastName = user.LastName + "_new",
         };
 
         var updateResponseResult = await _userClient.Update(updateRequest);
