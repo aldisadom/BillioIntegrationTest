@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace IntegrationTests.Models;
+namespace Common;
 
 public class ErrorModel
 {

@@ -1,15 +1,12 @@
-﻿using BillioIntegrationTest.Helpers;
-using BillioIntegrationTest.Models;
+﻿using Common;
 using Contracts.Requests.Customer;
 using Contracts.Responses;
 using Contracts.Responses.Customer;
-using Contracts.Responses.Invoice;
 using IntegrationTests.Clients;
+using IntegrationTests.Helpers;
 using IntegrationTests.Models;
 using System.Net;
-using System.Xml.Linq;
 using TUnit.Assertions.Extensions.Generic;
-using TUnit.Core.Extensions;
 
 namespace BillioIntegrationTest.Tests;
 

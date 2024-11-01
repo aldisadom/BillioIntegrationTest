@@ -1,4 +1,6 @@
-﻿namespace IntegrationTests.Models;
+﻿using Common;
+
+namespace IntegrationTests.Models;
 
 public class TestCaseModel<T>
 {

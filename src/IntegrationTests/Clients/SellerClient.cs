@@ -1,4 +1,5 @@
-﻿using Contracts.Requests.Seller;
+﻿using Common;
+using Contracts.Requests.Seller;
 using Contracts.Responses;
 using Contracts.Responses.Seller;
 using IntegrationTests.Interfaces;

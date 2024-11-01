@@ -1,13 +1,12 @@
-﻿using BillioIntegrationTest.Helpers;
+﻿using Common;
 using Contracts.Requests.Seller;
 using Contracts.Responses;
-using Contracts.Responses.Invoice;
 using Contracts.Responses.Seller;
 using IntegrationTests.Clients;
+using IntegrationTests.Helpers;
 using IntegrationTests.Models;
 using System.Net;
 using TUnit.Assertions.Extensions.Generic;
-using TUnit.Core.Extensions;
 
 namespace BillioIntegrationTest.Tests;
 
@@ -273,7 +272,6 @@ public static class SellerTestDataSources
             }
         };
     }
-
     public static IEnumerable<TestCaseModel<SellerModel>> UpdateDataInvalid()
     {
         yield return new()
@@ -498,13 +496,11 @@ public static class SellerTestDataSources
             }
         };
     }
-
     public static IEnumerable<string> Emails()
     {
         yield return "dragon_delight@winter.com";
         yield return "stark_supply_co@winterfell.com";
     }
-
 }
 
 public partial class Tests

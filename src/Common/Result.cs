@@ -1,6 +1,4 @@
-﻿using IntegrationTests.Models;
-
-namespace IntegrationTests.Clients;
+﻿namespace Common;
 
 public readonly struct Result<T>
 {

@@ -1,7 +1,7 @@
-﻿using Contracts.Requests.Invoice;
+﻿using Common;
+using Contracts.Requests.Invoice;
 using Contracts.Responses;
 using Contracts.Responses.Invoice;
-using IntegrationTests.Clients;
 
 namespace IntegrationTests.Interfaces
 {

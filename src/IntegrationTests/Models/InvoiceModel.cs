@@ -1,4 +1,4 @@
-﻿namespace BillioIntegrationTest.Models;
+﻿namespace IntegrationTests.Models;
 
 public record InvoiceModel
 {

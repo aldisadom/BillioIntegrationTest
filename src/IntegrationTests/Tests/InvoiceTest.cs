@@ -1,5 +1,4 @@
-﻿using BillioIntegrationTest.Helpers;
-using BillioIntegrationTest.Models;
+﻿using Common;
 using Contracts.Requests.Customer;
 using Contracts.Requests.Invoice;
 using Contracts.Requests.Item;
@@ -12,28 +11,17 @@ using Contracts.Responses.Item;
 using Contracts.Responses.Seller;
 using Contracts.Responses.User;
 using IntegrationTests.Clients;
+using IntegrationTests.Helpers;
 using IntegrationTests.Models;
 using System.Net;
 using TUnit.Assertions.Extensions.Generic;
-using TUnit.Core.Extensions;
-using TUnit.Core.Interfaces;
 using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
-public record InvoiceModel
-{
-    public string SellerEmail { get; set; } = string.Empty;
-    public string CustomerEmail { get; set; } = string.Empty;
-    public string UserEmail { get; set; } = string.Empty;
-    public List<string> ItemsName { get; set; } = [];
-    public string Comments { get; set; } = string.Empty;
-    public DateOnly DueDate { get; set; }
-    public DateOnly CreatedDate { get; set; }
-}
 
 public static class InvoiceTestDataSources
 {
-    public static IEnumerable<TestCaseModel<Models.InvoiceModel>> AddData()
+    public static IEnumerable<TestCaseModel<InvoiceModel>> AddData()
     {
         yield return new()
         {
@@ -128,8 +116,8 @@ public static class InvoiceTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseModel<Models.InvoiceModel>> AddDataInvalid()
-    {        
+    public static IEnumerable<TestCaseModel<InvoiceModel>> AddDataInvalid()
+    {
         yield return new()
         {
             TestCase = "No user id",
@@ -199,7 +187,7 @@ public static class InvoiceTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify valid seller Id"
+                ExtendedMessage = "Change me"
             },
             Data = new()
             {
@@ -262,11 +250,11 @@ public static class InvoiceTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify valid customer id"
+                ExtendedMessage = "Change me"
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),                
+                UserEmail = UserEmails().First(),
                 SellerEmail = SellerNames().First() + UserEmails().First(),
                 CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().ToArray()[1],
                 Items = new List<InvoiceItemModel>()
@@ -300,7 +288,7 @@ public static class InvoiceTestDataSources
             {
                 UserEmail = UserEmails().First(),
                 SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),                
+                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
                 Comments = "Invoice com",
                 DueDate = InvoiceCreateDate().First().AddDays(5),
                 CreatedDate = InvoiceCreateDate().First(),
@@ -328,12 +316,12 @@ public static class InvoiceTestDataSources
         };
         yield return new()
         {
-            TestCase = "Invalid item",
+            TestCase = "Invalid items id",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide valid item"
+                ExtendedMessage = "Change me"
             },
             Data = new()
             {
@@ -350,6 +338,42 @@ public static class InvoiceTestDataSources
                     new (){
                         Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().ToArray()[1],
                         Quantity = 15,
+                        Comments = "Old"
+                    },
+                    new (){
+                        Name = ItemNames().ToArray()[1] + CustomerNames().ToArray()[1] + SellerNames().First() + UserEmails().ToArray()[1],
+                        Quantity = 15,
+                        Comments = "Old"
+                    },
+                },
+                Comments = "Invoice com",
+                DueDate = InvoiceCreateDate().First().AddDays(5),
+                CreatedDate = InvoiceCreateDate().First(),
+            }
+        };
+        yield return new()
+        {
+            TestCase = "Invalid item quantity",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Change me"
+            },
+            Data = new()
+            {
+                UserEmail = UserEmails().First(),
+                SellerEmail = SellerNames().First() + UserEmails().First(),
+                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                Items = new List<InvoiceItemModel>()
+                {
+                    new (){
+                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Quantity = 10,
+                        Comments = "New"
+                    },
+                    new (){
+                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
                         Comments = "Old"
                     },
                 },
@@ -421,42 +445,9 @@ public static class InvoiceTestDataSources
                 CreatedDate = DateOnly.FromDateTime(DateTime.Now),
             }
         };
-        /*
-        yield return new()
-        {
-            TestCase = "No user id",
-            Error = new ErrorModel()
-            {
-                StatusCode = HttpStatusCode.BadRequest,
-                Message = "Validation failure",
-                ExtendedMessage = "Please specify invoice name"
-            },
-            Data = new()
-            {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
-                Items = new List<InvoiceItemModel>()
-                {
-                    new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
-                        Quantity = 10,
-                        Comments = "New"
-                    },
-                    new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
-                        Quantity = 15,
-                        Comments = "Old"
-                    },
-                },
-                Comments = "Invoice com",
-                DueDate = InvoiceCreateDate().First().AddDays(5),
-                CreatedDate = InvoiceCreateDate().First(),
-            }
-        };*/
     }
 
-    public static IEnumerable<TestCaseModel<Models.InvoiceModel>> UpdateDataInvalid()
+    public static IEnumerable<TestCaseModel<InvoiceModel>> UpdateDataInvalid()
     {
         yield return new()
         {
@@ -593,7 +584,7 @@ public static class InvoiceTestDataSources
     }
     public static IEnumerable<DateOnly> InvoiceCreateDate()
     {
-        yield return new DateOnly(2024,1,1);
+        yield return new DateOnly(2024, 1, 1);
         yield return DateOnly.FromDateTime(DateTime.Now);
         yield return DateOnly.FromDateTime(DateTime.Now.AddDays(365));
     }
@@ -604,11 +595,11 @@ public partial class Tests
     private static readonly InvoiceClient _invoiceClient = new();
     public static T GetInvoicePrepFromTest<T>(string name)
     {
-        return TestDataHelper.GetData<T>(name, nameof(Invoice_Prepare_Data));        
+        return TestDataHelper.GetData<T>(name, nameof(Invoice_Prepare_Data));
     }
-    public static Models.InvoiceModel GetInvoiceFromTest(string name)
+    public static InvoiceModel GetInvoiceFromTest(string name)
     {
-        return TestDataHelper.GetData<Models.InvoiceModel>(name, nameof(InvoiceAdd_Valid_Success));
+        return TestDataHelper.GetData<InvoiceModel>(name, nameof(InvoiceAdd_Valid_Success));
     }
 
     [Test]
@@ -736,7 +727,7 @@ public partial class Tests
                 user => { return user; },
                 error => { throw new Exception("User get: " + error.ToString()); }
             );
-            TestContext.Current!.ObjectBag.Add(userGet!.Email, userGet);        
+            TestContext.Current!.ObjectBag.Add(userGet!.Email, userGet);
         }
     }
 
@@ -745,19 +736,19 @@ public partial class Tests
     [DependsOn(nameof(Invoice_Prepare_Data))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.AddData))]
     [DisplayName("Invoice add, valid data: $testCase")]
-    public async Task InvoiceAdd_Valid_Success(TestCaseModel<Models.InvoiceModel> testCase)
+    public async Task InvoiceAdd_Valid_Success(TestCaseModel<InvoiceModel> testCase)
     {
-        Models.InvoiceModel invoiceModel = testCase.Data;
+        InvoiceModel invoiceModel = testCase.Data;
 
         var user = GetInvoicePrepFromTest<UserResponse>(invoiceModel.UserEmail);
         var seller = GetInvoicePrepFromTest<SellerResponse>(invoiceModel.SellerEmail);
         var customer = GetInvoicePrepFromTest<CustomerResponse>(invoiceModel.CustomerEmail);
         var itemList = invoiceModel.Items.Select(i => new InvoiceItemRequest()
-            {
-                Id = GetInvoicePrepFromTest<ItemResponse>(i.Name).Id,
-                Quantity = i.Quantity,
-                Comments = i.Comments
-            }
+        {
+            Id = GetInvoicePrepFromTest<ItemResponse>(i.Name).Id,
+            Quantity = i.Quantity,
+            Comments = i.Comments
+        }
         ).ToList();
 
         InvoiceAddRequest addRequest = new()
@@ -770,7 +761,7 @@ public partial class Tests
             DueDate = invoiceModel.DueDate,
             CreatedDate = invoiceModel.CreatedDate,
         };
-        
+
         var addResponseResult = await _invoiceClient.Add(addRequest);
         AddResponse addResponse = addResponseResult.Match(
             invoice => { return invoice; },
@@ -835,19 +826,19 @@ public partial class Tests
             await Assert.That(getResponse.Items[i].Quantity).IsEquivalentTo(invoiceModel.Items[i].Quantity);
 
             totalPrice += invoiceModel.Items[i].Quantity * item.Price;
-        }        
-        await Assert.That(getResponse!.TotalPrice).IsEquivalentTo(totalPrice);        
+        }
+        await Assert.That(getResponse!.TotalPrice).IsEquivalentTo(totalPrice);
 
         TestContext.Current!.ObjectBag.Add(getResponse.CreatedDate.ToString(), getResponse);
     }
 
     [Test]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.AddDataInvalid))]
-    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<Models.InvoiceModel>)])]
+    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<InvoiceModel>)])]
     [DisplayName("Invoice add, invalid data: $testCase")]
-    public async Task InvoiceAdd_InValid_Fail(TestCaseModel<Models.InvoiceModel> testCase)
+    public async Task InvoiceAdd_InValid_Fail(TestCaseModel<InvoiceModel> testCase)
     {
-        Models.InvoiceModel invoiceModel = testCase.Data;
+        InvoiceModel invoiceModel = testCase.Data;
 
         var itemList = invoiceModel.Items is null ? null : invoiceModel.Items.Select(i => new InvoiceItemRequest()
         {
@@ -862,7 +853,7 @@ public partial class Tests
             UserId = string.IsNullOrEmpty(invoiceModel.UserEmail) ? Guid.Empty : GetInvoicePrepFromTest<UserResponse>(invoiceModel.UserEmail).Id,
             SellerId = string.IsNullOrEmpty(invoiceModel.SellerEmail) ? Guid.Empty : GetInvoicePrepFromTest<SellerResponse>(invoiceModel.SellerEmail).Id,
             CustomerId = string.IsNullOrEmpty(invoiceModel.CustomerEmail) ? Guid.Empty : GetInvoicePrepFromTest<CustomerResponse>(invoiceModel.CustomerEmail).Id,
-            Items = itemList,
+            Items = itemList!,
             Comments = invoiceModel.Comments,
             DueDate = invoiceModel.DueDate,
             CreatedDate = invoiceModel.CreatedDate,
@@ -875,11 +866,46 @@ public partial class Tests
             error => { return error; }
         );
 
-        await testCase.Error!.CheckErrors(error);
+        ErrorModel testError;
+
+        if (testCase.TestCase == "Invalid seller id")
+            testError = new ErrorModel()
+            {
+                StatusCode = error.StatusCode,
+                Message = error.Message,
+                ExtendedMessage = $"Seller id {addRequest.SellerId} is invalid for user id {addRequest.UserId}"
+            };
+
+        else if (testCase.TestCase == "Invalid customer id")
+            testError = new ErrorModel()
+            {
+                StatusCode = error.StatusCode,
+                Message = error.Message,
+                ExtendedMessage = $"Customer id {addRequest.CustomerId} is invalid for seller id {addRequest.SellerId}"
+            };
+
+        else if (testCase.TestCase == "Invalid items id")
+            testError = new ErrorModel()
+            {
+                StatusCode = error.StatusCode,
+                Message = error.Message,
+                ExtendedMessage = $"Items id {addRequest.Items[1].Id} {addRequest.Items[2].Id} is invalid for customer id {addRequest.CustomerId}"
+            };
+        else if (testCase.TestCase == "Invalid item quantity")
+            testError = new ErrorModel()
+            {
+                StatusCode = error.StatusCode,
+                Message = error.Message,
+                ExtendedMessage = $"Please provide quantity that should > 0 for { addRequest.Items[1].Id}"
+            };
+        else        
+            testError = testCase.Error!;
+
+        await testError.CheckErrors(error);
     }
 
     [Test]
-    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<Models.InvoiceModel>)])]
+    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<InvoiceModel>)])]
     public async Task InvoiceDelete_Valid_Success()
     {/*
         InvoiceAddRequest addRequest = new()
@@ -927,7 +953,7 @@ public partial class Tests
 
         ErrorModel expectedError = new("Entity not found", $"Invoice data:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
-    }   
+    }
 
     [Test]
     [DependsOn(nameof(InvoiceDelete_Valid_Success))]
@@ -983,9 +1009,9 @@ public partial class Tests
 
     [Test]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateDataInvalid))]
-    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<Models.InvoiceModel>)])]
+    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<InvoiceModel>)])]
     [DisplayName("Invoice update, invalid data: $testCase")]
-    public async Task InvoiceUpdate_InValid_Fail(TestCaseModel<Models.InvoiceModel> testCase)
+    public async Task InvoiceUpdate_InValid_Fail(TestCaseModel<InvoiceModel> testCase)
     {/*
         InvoiceModel invoice = testCase.Data;
         InvoiceUpdateRequest updateRequest = new()
