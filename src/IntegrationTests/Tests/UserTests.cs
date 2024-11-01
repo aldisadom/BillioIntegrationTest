@@ -259,6 +259,7 @@ public partial class Tests
     [Before(Class)]
     public static async Task PrepareTestEnvironment()
     {
+        await Invoice_Delete_All();
         await Item_Delete_All();
         await Customer_Delete_All();
         await Seller_Delete_All();

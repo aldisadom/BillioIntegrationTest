@@ -495,7 +495,7 @@ public partial class Tests
     }
 
     [Test]
-    [After(Class)]
+    [DependsOn(nameof(InvoiceDelete_AfterAll_Success))]
     public static async Task ItemDelete_AfterAll_Success()
     {
         await Item_Delete_All();
