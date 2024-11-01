@@ -1,5 +1,7 @@
-﻿using Contracts.Requests.Seller;
+﻿using BillioIntegrationTest.Helpers;
+using Contracts.Requests.Seller;
 using Contracts.Responses;
+using Contracts.Responses.Invoice;
 using Contracts.Responses.Seller;
 using IntegrationTests.Clients;
 using IntegrationTests.Models;
@@ -123,7 +125,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify street of company"
+                ExtendedMessage = "Please specify street"
             },
             Data = new()
             {
@@ -145,7 +147,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify city of company"
+                ExtendedMessage = "Please specify city"
             },
             Data = new()
             {
@@ -167,7 +169,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify state of company"
+                ExtendedMessage = "Please specify state"
             },
             Data = new()
             {
@@ -189,7 +191,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide phone number of company"
+                ExtendedMessage = "Please provide phone number"
             },
             Data = new()
             {
@@ -211,7 +213,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide bank name that uses this company"
+                ExtendedMessage = "Please provide bank name"
             },
             Data = new()
             {
@@ -233,7 +235,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide bank account number that uses this company"
+                ExtendedMessage = "Please provide bank account number"
             },
             Data = new()
             {
@@ -370,7 +372,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify street of company"
+                ExtendedMessage = "Please specify street"
             },
             Data = new()
             {
@@ -392,7 +394,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify city of company"
+                ExtendedMessage = "Please specify city"
             },
             Data = new()
             {
@@ -414,7 +416,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify state of company"
+                ExtendedMessage = "Please specify state"
             },
             Data = new()
             {
@@ -436,7 +438,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide phone number of company"
+                ExtendedMessage = "Please provide phone number"
             },
             Data = new()
             {
@@ -458,7 +460,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide bank name that uses this company"
+                ExtendedMessage = "Please provide bank name"
             },
             Data = new()
             {
@@ -480,7 +482,7 @@ public static class SellerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide bank account number that uses this company"
+                ExtendedMessage = "Please provide bank account number"
             },
             Data = new()
             {
@@ -508,29 +510,9 @@ public static class SellerTestDataSources
 public partial class Tests
 {
     private static readonly SellerClient _sellerClient = new();
-
     public static SellerModel GetSellerFromTest(string email)
     {
-
-        var addToBagTestContext = TestContext.Current!.GetTests(nameof(SellerAdd_Valid_Success));
-
-        foreach (var bag in addToBagTestContext)
-        {
-            try
-            {
-                var item = bag.ObjectBag[email];
-                if (item is null || item is not SellerModel)
-                    continue;
-
-                return (SellerModel)item;
-            }
-            catch
-            {
-
-            }
-        }
-
-        throw new Exception($"Seller email not found in test data: {email}");
+        return TestDataHelper.GetData<SellerModel>(email, nameof(SellerAdd_Valid_Success));
     }
 
     [Test]
@@ -812,9 +794,7 @@ public partial class Tests
         await testCase.CheckErrors(error);
     }
 
-    [Test]
-    [DependsOn(nameof(CustomerDelete_AfterAll_Success))]
-    public static async Task SellerDelete_AfterAll_Success()
+    public static async Task Seller_Delete_All()
     {
         var listResponseResult = await _sellerClient.Get();
         SellerListResponse listResponse = listResponseResult.Match(
@@ -822,15 +802,22 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        foreach (var seller in listResponse.Sellers)
+        foreach (var invoice in listResponse.Sellers)
         {
-            var deleteResponseResult = await _sellerClient.Delete(seller.Id);
+            var deleteResponseResult = await _sellerClient.Delete(invoice.Id);
             bool deleteResponse = deleteResponseResult.Match(
-                user => { return user; },
+                seller => { return seller; },
                 error => { throw new Exception(error.ToString()); }
             );
 
             await Assert.That(deleteResponse).IsTrue();
         }
+    }
+
+    [Test]
+    [DependsOn(nameof(CustomerDelete_AfterAll_Success))]
+    public static async Task SellerDelete_AfterAll_Success()
+    {
+        await Seller_Delete_All();
     }
 }

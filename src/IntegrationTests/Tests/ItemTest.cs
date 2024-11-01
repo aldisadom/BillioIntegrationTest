@@ -1,4 +1,5 @@
-﻿using Contracts.Requests.Item;
+﻿using BillioIntegrationTest.Helpers;
+using Contracts.Requests.Item;
 using Contracts.Responses;
 using Contracts.Responses.Item;
 using IntegrationTests.Clients;
@@ -45,7 +46,7 @@ public static class ItemTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify item name"
+                ExtendedMessage = "Please specify name"
             },
             Data = new()
             {
@@ -94,7 +95,7 @@ public static class ItemTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify item quantity"
+                ExtendedMessage = "Please specify quantity"
             },
             Data = new()
             {
@@ -164,7 +165,7 @@ public static class ItemTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify item name"
+                ExtendedMessage = "Please specify name"
             },
             Data = new()
             {
@@ -213,7 +214,7 @@ public static class ItemTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify item quantity"
+                ExtendedMessage = "Please specify quantity"
             },
             Data = new()
             {
@@ -252,29 +253,9 @@ public static class ItemTestDataSources
 public partial class Tests
 {
     private static readonly ItemClient _itemClient = new();
-
-    public static ItemModel GetItemFromTest(string name)
+    public static ItemModel GetItemFromTest(string email)
     {
-
-        var addToBagTestContext = TestContext.Current!.GetTests(nameof(ItemAdd_Valid_Success));
-
-        foreach (var bag in addToBagTestContext)
-        {
-            try
-            {
-                var item = bag.ObjectBag[name];
-                if (item is null || item is not ItemModel)
-                    continue;
-
-                return (ItemModel)item;
-            }
-            catch
-            {
-
-            }
-        }
-
-        throw new Exception($"Item name not found in test data: {name}");
+        return TestDataHelper.GetData<ItemModel>(email, nameof(ItemAdd_Valid_Success));
     }
 
     [Test]
@@ -493,9 +474,7 @@ public partial class Tests
         await testCase.CheckErrors(error);
     }
 
-    [Test]
-    [After(Class)]
-    public static async Task ItemDelete_AfterAll_Success()
+    public static async Task Item_Delete_All()
     {
         var listResponseResult = await _itemClient.Get();
         ItemListResponse listResponse = listResponseResult.Match(
@@ -503,15 +482,22 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        foreach (var item in listResponse.Items)
+        foreach (var invoice in listResponse.Items)
         {
-            var deleteResponseResult = await _itemClient.Delete(item.Id);
+            var deleteResponseResult = await _itemClient.Delete(invoice.Id);
             bool deleteResponse = deleteResponseResult.Match(
-                customer => { return customer; },
+                item => { return item; },
                 error => { throw new Exception(error.ToString()); }
             );
 
             await Assert.That(deleteResponse).IsTrue();
         }
+    }
+
+    [Test]
+    [After(Class)]
+    public static async Task ItemDelete_AfterAll_Success()
+    {
+        await Item_Delete_All();
     }
 }

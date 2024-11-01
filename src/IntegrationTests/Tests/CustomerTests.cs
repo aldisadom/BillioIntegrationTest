@@ -1,9 +1,13 @@
-﻿using Contracts.Requests.Customer;
+﻿using BillioIntegrationTest.Helpers;
+using BillioIntegrationTest.Models;
+using Contracts.Requests.Customer;
 using Contracts.Responses;
 using Contracts.Responses.Customer;
+using Contracts.Responses.Invoice;
 using IntegrationTests.Clients;
 using IntegrationTests.Models;
 using System.Net;
+using System.Xml.Linq;
 using TUnit.Assertions.Extensions.Generic;
 using TUnit.Core.Extensions;
 
@@ -55,7 +59,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide valid customer email address"
+                ExtendedMessage = "Please provide valid email address"
             },
             Data = new()
             {
@@ -76,7 +80,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify customer company name"
+                ExtendedMessage = "Please specify company name"
             },
             Data = new()
             {
@@ -97,7 +101,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify customer company number"
+                ExtendedMessage = "Please specify company number"
             },
             Data = new()
             {
@@ -118,7 +122,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify street of customer"
+                ExtendedMessage = "Please specify street"
             },
             Data = new()
             {
@@ -139,7 +143,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify city of customer"
+                ExtendedMessage = "Please specify city"
             },
             Data = new()
             {
@@ -160,7 +164,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify state of customer"
+                ExtendedMessage = "Please specify state"
             },
             Data = new()
             {
@@ -181,7 +185,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide phone number of customer"
+                ExtendedMessage = "Please provide phone number"
             },
             Data = new()
             {
@@ -202,7 +206,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice name that will be used for customer"
+                ExtendedMessage = "Please provide invoice name"
             },
             Data = new()
             {
@@ -271,7 +275,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide valid customer email address"
+                ExtendedMessage = "Please provide valid email address"
             },
             Data = new()
             {
@@ -293,7 +297,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify customer company name"
+                ExtendedMessage = "Please specify company name"
             },
             Data = new()
             {
@@ -315,7 +319,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify customer company number"
+                ExtendedMessage = "Please specify company number"
             },
             Data = new()
             {
@@ -337,7 +341,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify street of customer"
+                ExtendedMessage = "Please specify street"
             },
             Data = new()
             {
@@ -359,7 +363,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify city of customer"
+                ExtendedMessage = "Please specify city"
             },
             Data = new()
             {
@@ -381,7 +385,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please specify state of customer"
+                ExtendedMessage = "Please specify state"
             },
             Data = new()
             {
@@ -403,7 +407,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide phone number of customer"
+                ExtendedMessage = "Please provide phone number"
             },
             Data = new()
             {
@@ -425,7 +429,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice name that will be used for this customer"
+                ExtendedMessage = "Please provide invoice name"
             },
             Data = new()
             {
@@ -447,7 +451,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice number that should be more than zero"
+                ExtendedMessage = "Please provide invoice number that should be more than 0"
             },
             Data = new()
             {
@@ -469,7 +473,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice number that should be more than zero"
+                ExtendedMessage = "Please provide invoice number that should be more than 0"
             },
             Data = new()
             {
@@ -498,29 +502,9 @@ public static class CustomerTestDataSources
 public partial class Tests
 {
     private static readonly CustomerClient _customerClient = new();
-
     public static CustomerModel GetCustomerFromTest(string email)
     {
-
-        var addToBagTestContext = TestContext.Current!.GetTests(nameof(CustomerAdd_Valid_Success));
-
-        foreach (var bag in addToBagTestContext)
-        {
-            try
-            {
-                var item = bag.ObjectBag[email];
-                if (item is null || item is not CustomerModel)
-                    continue;
-
-                return (CustomerModel)item;
-            }
-            catch
-            {
-
-            }
-        }
-
-        throw new Exception($"Customer email not found in test data: {email}");
+        return TestDataHelper.GetData<CustomerModel>(email, nameof(CustomerAdd_Valid_Success));
     }
 
     [Test]
@@ -798,9 +782,7 @@ public partial class Tests
         await testCase.CheckErrors(error);
     }
 
-    [Test]
-    [DependsOn(nameof(ItemDelete_AfterAll_Success))]
-    public static async Task CustomerDelete_AfterAll_Success()
+    public static async Task Customer_Delete_All()
     {
         var listResponseResult = await _customerClient.Get();
         CustomerListResponse listResponse = listResponseResult.Match(
@@ -808,15 +790,22 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        foreach (var customer in listResponse.Customers)
+        foreach (var invoice in listResponse.Customers)
         {
-            var deleteResponseResult = await _customerClient.Delete(customer.Id);
+            var deleteResponseResult = await _customerClient.Delete(invoice.Id);
             bool deleteResponse = deleteResponseResult.Match(
-                seller => { return seller; },
+                customer => { return customer; },
                 error => { throw new Exception(error.ToString()); }
             );
 
             await Assert.That(deleteResponse).IsTrue();
         }
+    }
+
+    [Test]
+    [DependsOn(nameof(ItemDelete_AfterAll_Success))]
+    public static async Task CustomerDelete_AfterAll_Success()
+    {
+        await Customer_Delete_All();
     }
 }

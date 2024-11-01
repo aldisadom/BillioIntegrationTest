@@ -1,4 +1,5 @@
-﻿using Contracts.Requests.User;
+﻿using BillioIntegrationTest.Helpers;
+using Contracts.Requests.User;
 using Contracts.Responses;
 using Contracts.Responses.User;
 using IntegrationTests.Clients;
@@ -249,37 +250,19 @@ public static class UserTestDataSources
 public partial class Tests
 {
     private static readonly UserClient _userClient = new();
-
     public static UserModel GetUserFromTest(string email)
     {
-        var addToBagTestContext = TestContext.Current!.GetTests(nameof(UserAdd_Valid_Success));
-
-        foreach (var bag in addToBagTestContext)
-        {
-            try
-            {
-                var item = bag.ObjectBag[email];
-                if (item is null || item is not UserModel)
-                    continue;
-
-                return (UserModel)item;
-            }
-            catch
-            {
-            }
-        }
-
-        throw new Exception($"User email not found in test data: {email}");
+        return TestDataHelper.GetData<UserModel>(email, nameof(UserAdd_Valid_Success));
     }
 
     [Test]
     [Before(Class)]
     public static async Task PrepareTestEnvironment()
     {
-        await ItemDelete_AfterAll_Success();
-        await CustomerDelete_AfterAll_Success();
-        await SellerDelete_AfterAll_Success();
-        await UserDelete_AfterAll_Success();
+        await Item_Delete_All();
+        await Customer_Delete_All();
+        await Seller_Delete_All();
+        await User_Delete_All();
     }
 
     [Test]
@@ -539,9 +522,7 @@ public partial class Tests
         await testCase.CheckErrors(error);
     }
 
-    [Test]
-    [DependsOn(nameof(SellerDelete_AfterAll_Success))]
-    public static async Task UserDelete_AfterAll_Success()
+    public static async Task User_Delete_All()
     {
         var listResponseResult = await _userClient.Get();
         UserListResponse listResponse = listResponseResult.Match(
@@ -549,9 +530,9 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        foreach (var user in listResponse.Users)
+        foreach (var invoice in listResponse.Users)
         {
-            var deleteResponseResult = await _userClient.Delete(user.Id);
+            var deleteResponseResult = await _userClient.Delete(invoice.Id);
             bool deleteResponse = deleteResponseResult.Match(
                 user => { return user; },
                 error => { throw new Exception(error.ToString()); }
@@ -559,5 +540,12 @@ public partial class Tests
 
             await Assert.That(deleteResponse).IsTrue();
         }
+    }
+
+    [Test]
+    [DependsOn(nameof(SellerDelete_AfterAll_Success))]
+    public static async Task UserDelete_AfterAll_Success()
+    {
+        await User_Delete_All();
     }
 }
