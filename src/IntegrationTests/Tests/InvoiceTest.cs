@@ -20,7 +20,7 @@ using TUnit.Core.Interfaces;
 using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
-public record InvoiceModelf
+public record InvoiceModel
 {
     public string SellerEmail { get; set; } = string.Empty;
     public string CustomerEmail { get; set; } = string.Empty;
@@ -33,7 +33,7 @@ public record InvoiceModelf
 
 public static class InvoiceTestDataSources
 {
-    public static IEnumerable<TestCaseModel<InvoiceModel>> AddData()
+    public static IEnumerable<TestCaseModel<Models.InvoiceModel>> AddData()
     {
         yield return new()
         {
@@ -128,7 +128,7 @@ public static class InvoiceTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseModel<InvoiceModel>> AddDataInvalid()
+    public static IEnumerable<TestCaseModel<Models.InvoiceModel>> AddDataInvalid()
     {        
         yield return new()
         {
@@ -456,7 +456,7 @@ public static class InvoiceTestDataSources
         };*/
     }
 
-    public static IEnumerable<TestCaseModel<InvoiceModel>> UpdateDataInvalid()
+    public static IEnumerable<TestCaseModel<Models.InvoiceModel>> UpdateDataInvalid()
     {
         yield return new()
         {
@@ -606,9 +606,9 @@ public partial class Tests
     {
         return TestDataHelper.GetData<T>(name, nameof(Invoice_Prepare_Data));        
     }
-    public static InvoiceModel GetInvoiceFromTest(string name)
+    public static Models.InvoiceModel GetInvoiceFromTest(string name)
     {
-        return TestDataHelper.GetData<InvoiceModel>(name, nameof(InvoiceAdd_Valid_Success));
+        return TestDataHelper.GetData<Models.InvoiceModel>(name, nameof(InvoiceAdd_Valid_Success));
     }
 
     [Test]
@@ -745,9 +745,9 @@ public partial class Tests
     [DependsOn(nameof(Invoice_Prepare_Data))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.AddData))]
     [DisplayName("Invoice add, valid data: $testCase")]
-    public async Task InvoiceAdd_Valid_Success(TestCaseModel<InvoiceModel> testCase)
+    public async Task InvoiceAdd_Valid_Success(TestCaseModel<Models.InvoiceModel> testCase)
     {
-        InvoiceModel invoiceModel = testCase.Data;
+        Models.InvoiceModel invoiceModel = testCase.Data;
 
         var user = GetInvoicePrepFromTest<UserResponse>(invoiceModel.UserEmail);
         var seller = GetInvoicePrepFromTest<SellerResponse>(invoiceModel.SellerEmail);
@@ -843,11 +843,11 @@ public partial class Tests
 
     [Test]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.AddDataInvalid))]
-    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<InvoiceModel>)])]
+    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<Models.InvoiceModel>)])]
     [DisplayName("Invoice add, invalid data: $testCase")]
-    public async Task InvoiceAdd_InValid_Fail(TestCaseModel<InvoiceModel> testCase)
+    public async Task InvoiceAdd_InValid_Fail(TestCaseModel<Models.InvoiceModel> testCase)
     {
-        InvoiceModel invoiceModel = testCase.Data;
+        Models.InvoiceModel invoiceModel = testCase.Data;
 
         var itemList = invoiceModel.Items is null ? null : invoiceModel.Items.Select(i => new InvoiceItemRequest()
         {
@@ -879,7 +879,7 @@ public partial class Tests
     }
 
     [Test]
-    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<InvoiceModel>)])]
+    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<Models.InvoiceModel>)])]
     public async Task InvoiceDelete_Valid_Success()
     {/*
         InvoiceAddRequest addRequest = new()
@@ -983,9 +983,9 @@ public partial class Tests
 
     [Test]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateDataInvalid))]
-    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<InvoiceModel>)])]
+    [DependsOn(nameof(InvoiceAdd_Valid_Success), [typeof(TestCaseModel<Models.InvoiceModel>)])]
     [DisplayName("Invoice update, invalid data: $testCase")]
-    public async Task InvoiceUpdate_InValid_Fail(TestCaseModel<InvoiceModel> testCase)
+    public async Task InvoiceUpdate_InValid_Fail(TestCaseModel<Models.InvoiceModel> testCase)
     {/*
         InvoiceModel invoice = testCase.Data;
         InvoiceUpdateRequest updateRequest = new()
