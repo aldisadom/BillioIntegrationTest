@@ -4,8 +4,8 @@ namespace IntegrationTests;
 
 internal class Program
 {
-    public class LoadTestParallelLimit : IParallelLimit
+    public record SingleLimiter : IParallelLimit
     {
-        public int Limit => 10;
+        public int Limit => 1;
     }
 }
