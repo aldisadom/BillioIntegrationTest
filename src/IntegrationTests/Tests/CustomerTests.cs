@@ -451,7 +451,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice number that should be more than zero"
+                ExtendedMessage = "Please provide invoice number that should be more than 0"
             },
             Data = new()
             {
@@ -473,7 +473,7 @@ public static class CustomerTestDataSources
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice number that should be more than zero"
+                ExtendedMessage = "Please provide invoice number that should be more than 0"
             },
             Data = new()
             {
