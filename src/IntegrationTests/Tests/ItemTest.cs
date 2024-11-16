@@ -1,12 +1,14 @@
 ﻿using Common;
+using Contracts.Requests.Customer;
 using Contracts.Requests.Item;
 using Contracts.Responses;
+using Contracts.Responses.Customer;
 using Contracts.Responses.Item;
 using IntegrationTests.Clients;
 using IntegrationTests.Helpers;
 using IntegrationTests.Models;
 using System.Net;
-using TUnit.Assertions.Extensions.Generic;
+using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
 
@@ -16,7 +18,7 @@ public static class ItemTestDataSources
     {
         yield return new()
         {
-            TestCase = Names().First(),
+            TestName = Names().First(),
             Data = new()
             {
                 CustomerEmail = CustomerTestDataSources.Emails().First(),
@@ -27,7 +29,7 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = Names().ToArray()[1],
+            TestName = Names().ToArray()[1],
             Data = new()
             {
                 CustomerEmail = CustomerTestDataSources.Emails().ToArray()[1],
@@ -37,11 +39,11 @@ public static class ItemTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseModel<ItemModel>> AddDataInvalid()
+    public static IEnumerable<TestCaseError<ItemModel>> AddDataInvalid()
     {
         yield return new()
         {
-            TestCase = "No name",
+            TestName = "No name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -57,12 +59,12 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "No price",
+            TestName = "No price",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Price should be more than zero"
+                ExtendedMessage = "Please provide price that must be > 0"
             },
             Data = new()
             {
@@ -73,12 +75,12 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "Price is 0",
+            TestName = "Price is 0",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Price should be more than zero"
+                ExtendedMessage = "Please provide price that must be > 0"
             },
             Data = new()
             {
@@ -90,7 +92,7 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "No quantity",
+            TestName = "No quantity",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -106,7 +108,7 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "Quantity -2",
+            TestName = "Quantity -2",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -123,7 +125,7 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "No customer",
+            TestName = "No customer",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -139,11 +141,11 @@ public static class ItemTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseModel<ItemModel>> UpdateDataInvalid()
+    public static IEnumerable<TestCaseError<ItemModel>> UpdateDataInvalid()
     {
         yield return new()
         {
-            TestCase = "Random Id",
+            TestName = "Random Id",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.NotFound,
@@ -160,7 +162,7 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "No name",
+            TestName = "No name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -176,12 +178,12 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "No price",
+            TestName = "No price",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Price should be more than zero"
+                ExtendedMessage = "Please provide price that must be > 0"
             },
             Data = new()
             {
@@ -192,12 +194,12 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "Price = 0",
+            TestName = "Price = 0",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Price should be more than zero"
+                ExtendedMessage = "Please provide price that must be > 0"
             },
             Data = new()
             {
@@ -209,7 +211,7 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "No quantity",
+            TestName = "No quantity",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -225,7 +227,7 @@ public static class ItemTestDataSources
         };
         yield return new()
         {
-            TestCase = "Quantity = -2",
+            TestName = "Quantity = -2",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -274,6 +276,7 @@ public partial class Tests
     }
 
     [Test]
+    [ParallelLimiter<SingleLimiter>]
     [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
     [MethodDataSource(typeof(ItemTestDataSources), nameof(ItemTestDataSources.AddData))]
     [DisplayName("Item add, valid data: $testCase")]
@@ -324,7 +327,7 @@ public partial class Tests
     [MethodDataSource(typeof(ItemTestDataSources), nameof(ItemTestDataSources.AddDataInvalid))]
     [DependsOn(nameof(ItemAdd_Valid_Success), [typeof(TestCaseModel<ItemModel>)])]
     [DisplayName("Item add, invalid data: $testCase")]
-    public async Task ItemAdd_InValid_Fail(TestCaseModel<ItemModel> testCase)
+    public async Task ItemAdd_InValid_Fail(TestCaseError<ItemModel> testCase)
     {
         ItemModel itemModel = testCase.Data;
         ItemAddRequest addRequest = new()
@@ -411,8 +414,30 @@ public partial class Tests
     }
 
     [Test]
+    [DependsOn(nameof(ItemDelete_Valid_Success))]
+    public async Task ItemGetAllForCustomer_Valid_Success()
+    {
+        var request = new ItemGetRequest()
+        {
+            CustomerId = GetCustomerFromTest(CustomerTestDataSources.Emails().First()).Id
+        };
+
+        var listResponseResult = await _itemClient.Get(request);
+        ItemListResponse listResponse = listResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(listResponse.Items)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+
+        await Assert.That(listResponse.Items[0].CustomerId).IsEquivalentTo(request.CustomerId!.Value);
+    }
+
+    [Test]
     [MethodDataSource(typeof(ItemTestDataSources), nameof(ItemTestDataSources.Names))]
-    [DependsOn(nameof(ItemAdd_Valid_Success), [typeof(ItemAddRequest)])]
+    [DependsOn(nameof(ItemAdd_Valid_Success), [typeof(TestCaseModel<ItemModel>)])]
     [DisplayName("Item update, valid data: $name")]
     public async Task ItemUpdate_Valid_Success(string name)
     {
@@ -451,7 +476,7 @@ public partial class Tests
     [MethodDataSource(typeof(ItemTestDataSources), nameof(ItemTestDataSources.UpdateDataInvalid))]
     [DependsOn(nameof(ItemAdd_Valid_Success), [typeof(TestCaseModel<ItemModel>)])]
     [DisplayName("Item update, invalid data: $testCase")]
-    public async Task ItemUpdate_InValid_Fail(TestCaseModel<ItemModel> testCase)
+    public async Task ItemUpdate_InValid_Fail(TestCaseError<ItemModel> testCase)
     {
         ItemModel item = testCase.Data;
         ItemUpdateRequest updateRequest = new()

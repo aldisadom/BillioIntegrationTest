@@ -2,12 +2,13 @@
 using Contracts.Requests.User;
 using Contracts.Responses;
 using Contracts.Responses.User;
+using IntegrationTests;
 using IntegrationTests.Clients;
 using IntegrationTests.Helpers;
 using IntegrationTests.Models;
 using LanguageExt;
 using System.Net;
-using TUnit.Assertions.Extensions.Generic;
+using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
 
@@ -17,7 +18,7 @@ public static class UserTestDataSources
     {
         yield return new()
         {
-            TestCase = Emails().First(),
+            TestName = Emails().First(),
             Data = new()
             {
                 Email = Emails().First(),
@@ -28,7 +29,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = Emails().ToArray()[1],
+            TestName = Emails().ToArray()[1],
             Data = new()
             {
                 Email = Emails().ToArray()[1],
@@ -39,11 +40,11 @@ public static class UserTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseModel<UserAddRequest>> AddDataInvalid()
+    public static IEnumerable<TestCaseError<UserAddRequest>> AddDataInvalid()
     {
         yield return new()
         {
-            TestCase = "MotherOfDragons@hotmail.com already exists",
+            TestName = "MotherOfDragons@hotmail.com already exists",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -60,7 +61,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = "Password too short",
+            TestName = "Password too short",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -77,7 +78,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = "No email address",
+            TestName = "No email address",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -93,7 +94,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = "No name",
+            TestName = "No name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -109,7 +110,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = "No lastname",
+            TestName = "No lastname",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -125,11 +126,11 @@ public static class UserTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseModel<UserLoginRequest>> LoginDataInvalid()
+    public static IEnumerable<TestCaseError<UserLoginRequest>> LoginDataInvalid()
     {
         yield return new()
         {
-            TestCase = "Incorrect password for MotherOfDragons@hotmail.com",
+            TestName = "Incorrect password for MotherOfDragons@hotmail.com",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.Unauthorized,
@@ -144,7 +145,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = "Incorrect email address",
+            TestName = "Incorrect email address",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.Unauthorized,
@@ -159,7 +160,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = "No email",
+            TestName = "No email",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -173,7 +174,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = "No password",
+            TestName = "No password",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -187,11 +188,11 @@ public static class UserTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseModel<UserModel>> UpdateDataInvalid()
+    public static IEnumerable<TestCaseError<UserModel>> UpdateDataInvalid()
     {
         yield return new()
         {
-            TestCase = "No name",
+            TestName = "No name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -207,7 +208,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = "No last name",
+            TestName = "No last name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -223,7 +224,7 @@ public static class UserTestDataSources
         };
         yield return new()
         {
-            TestCase = "Random Id",
+            TestName = "Random Id",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.NotFound,
@@ -247,6 +248,7 @@ public static class UserTestDataSources
     }
 }
 
+[ArgumentDisplayFormatter<ArgumentFormatter>]
 public partial class Tests
 {
     private static readonly UserClient _userClient = new();
@@ -324,7 +326,7 @@ public partial class Tests
     [MethodDataSource(typeof(UserTestDataSources), nameof(UserTestDataSources.AddDataInvalid))]
     [DependsOn(nameof(UserAdd_Valid_Success), [typeof(TestCaseModel<UserAddRequest>)])]
     [DisplayName("User add, invalid data: $testCase")]
-    public async Task UserAdd_InValid_Fail(TestCaseModel<UserAddRequest> testCase)
+    public async Task UserAdd_InValid_Fail(TestCaseError<UserAddRequest> testCase)
     {
         UserAddRequest addRequest = testCase.Data;
 
@@ -445,11 +447,11 @@ public partial class Tests
             .And.IsEqualTo("fakeToken");
     }
 
-    [Test]
+    [Test]    
     [MethodDataSource(typeof(UserTestDataSources), nameof(UserTestDataSources.LoginDataInvalid))]
     [DependsOn(nameof(UserAdd_Valid_Success), [typeof(TestCaseModel<UserAddRequest>)])]
     [DisplayName("User login with invalid: $testCase")]
-    public async Task UserLogin_InValid_Fail(TestCaseModel<UserLoginRequest> testCase)
+    public async Task UserLogin_InValid_Fail(TestCaseError<UserLoginRequest> testCase)
     {
         UserLoginRequest loginRequest = testCase.Data;
 
@@ -501,7 +503,7 @@ public partial class Tests
     [MethodDataSource(typeof(UserTestDataSources), nameof(UserTestDataSources.UpdateDataInvalid))]
     [DependsOn(nameof(UserAdd_Valid_Success), [typeof(TestCaseModel<UserAddRequest>)])]
     [DisplayName("User update, invalid data: $testCase")]
-    public async Task UserUpdate_InValid_Fail(TestCaseModel<UserModel> testCase)
+    public async Task UserUpdate_InValid_Fail(TestCaseError<UserModel> testCase)
     {
         UserModel user = testCase.Data;
         UserUpdateRequest updateRequest = new()

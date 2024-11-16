@@ -6,7 +6,7 @@ using IntegrationTests.Clients;
 using IntegrationTests.Helpers;
 using IntegrationTests.Models;
 using System.Net;
-using TUnit.Assertions.Extensions.Generic;
+using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
 
@@ -16,7 +16,7 @@ public static class CustomerTestDataSources
     {
         yield return new()
         {
-            TestCase = Emails().First(),
+            TestName = Emails().First(),
             Data = new()
             {
                 SellerEmail = SellerTestDataSources.Emails().First(),
@@ -32,7 +32,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = Emails().ToArray()[1],
+            TestName = Emails().ToArray()[1],
             Data = new()
             {
                 SellerEmail = SellerTestDataSources.Emails().ToArray()[1],
@@ -47,11 +47,11 @@ public static class CustomerTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseModel<CustomerModel>> AddDataInvalid()
+    public static IEnumerable<TestCaseError<CustomerModel>> AddDataInvalid()
     {
         yield return new()
         {
-            TestCase = "No email address",
+            TestName = "No email address",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -72,7 +72,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No company name",
+            TestName = "No company name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -93,7 +93,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No company number",
+            TestName = "No company number",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -114,7 +114,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No street",
+            TestName = "No street",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -135,7 +135,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No city",
+            TestName = "No city",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -156,7 +156,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No state",
+            TestName = "No state",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -177,7 +177,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No phone",
+            TestName = "No phone",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -198,7 +198,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No invoice name",
+            TestName = "No invoice name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -219,7 +219,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No seller",
+            TestName = "No seller",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -240,11 +240,11 @@ public static class CustomerTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseModel<CustomerModel>> UpdateDataInvalid()
+    public static IEnumerable<TestCaseError<CustomerModel>> UpdateDataInvalid()
     {
         yield return new()
         {
-            TestCase = "Random Id",
+            TestName = "Random Id",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.NotFound,
@@ -267,7 +267,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No email address",
+            TestName = "No email address",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -289,7 +289,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No company name",
+            TestName = "No company name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -311,7 +311,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No company number",
+            TestName = "No company number",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -333,7 +333,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No street",
+            TestName = "No street",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -355,7 +355,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No city",
+            TestName = "No city",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -377,7 +377,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No state",
+            TestName = "No state",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -399,7 +399,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No phone",
+            TestName = "No phone",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -421,7 +421,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No invoice name",
+            TestName = "No invoice name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -443,7 +443,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No invoice number",
+            TestName = "No invoice number",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -465,7 +465,7 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestCase = "Invoice number 0",
+            TestName = "Invoice number 0",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -585,7 +585,7 @@ public partial class Tests
     [MethodDataSource(typeof(CustomerTestDataSources), nameof(CustomerTestDataSources.AddDataInvalid))]
     [DependsOn(nameof(CustomerAdd_Valid_Success), [typeof(TestCaseModel<CustomerModel>)])]
     [DisplayName("Customer add, invalid data: $testCase")]
-    public async Task CustomerAdd_InValid_Fail(TestCaseModel<CustomerModel> testCase)
+    public async Task CustomerAdd_InValid_Fail(TestCaseError<CustomerModel> testCase)
     {
         CustomerModel customerModel = testCase.Data;
         CustomerAddRequest addRequest = new()
@@ -699,8 +699,30 @@ public partial class Tests
     }
 
     [Test]
+    [DependsOn(nameof(CustomerDelete_Valid_Success))]
+    public async Task CustomerGetAllForSeller_Valid_Success()
+    {
+        var request = new CustomerGetRequest()
+        {
+            SellerId = GetSellerFromTest(SellerTestDataSources.Emails().First()).Id
+        };
+
+        var listResponseResult = await _customerClient.Get(request);
+        CustomerListResponse listResponse = listResponseResult.Match(
+            customer => { return customer; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(listResponse.Customers)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+
+        await Assert.That(listResponse.Customers[0].SellerId).IsEquivalentTo(request.SellerId!.Value);
+    }
+
+    [Test]
     [MethodDataSource(typeof(CustomerTestDataSources), nameof(CustomerTestDataSources.Emails))]
-    [DependsOn(nameof(CustomerAdd_Valid_Success), [typeof(CustomerAddRequest)])]
+    [DependsOn(nameof(CustomerAdd_Valid_Success), [typeof(TestCaseModel<CustomerModel>)])]
     [DisplayName("Customer update, valid data: $email")]
     public async Task CustomerUpdate_Valid_Success(string email)
     {
@@ -750,7 +772,7 @@ public partial class Tests
     [MethodDataSource(typeof(CustomerTestDataSources), nameof(CustomerTestDataSources.UpdateDataInvalid))]
     [DependsOn(nameof(CustomerAdd_Valid_Success), [typeof(TestCaseModel<CustomerModel>)])]
     [DisplayName("Customer update, invalid data: $testCase")]
-    public async Task CustomerUpdate_InValid_Fail(TestCaseModel<CustomerModel> testCase)
+    public async Task CustomerUpdate_InValid_Fail(TestCaseError<CustomerModel> testCase)
     {
         CustomerModel customer = testCase.Data;
         CustomerUpdateRequest updateRequest = new()

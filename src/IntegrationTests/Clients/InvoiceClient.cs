@@ -22,16 +22,20 @@ public class InvoiceClient : IInvoiceClient
     {
         return await _userHttpClient.GetAsync<InvoiceListResponse>($"{_controller}");
     }
-    /*
-    public async Task<InvoiceDataListResponse> Get(InvoiceDataGetRequest request)
+
+    public async Task<Result<InvoiceListResponse>> Get(InvoiceGetRequest request)
     {
-        Dictionary<string, string> headers = new()
-        {
-            { "SellerId", request.SellerId.ToString()! }
-        };
-        return await _userHttpClient.GetAsync<InvoiceDataListResponse>("{_controller}", headers);
+        Dictionary<string, string> headers = new() { };
+        if (request.CustomerId is not null)
+            headers.Add("CustomerId", request.CustomerId.Value.ToString());
+        else if (request.SellerId is not null)
+            headers.Add("SellerId", request.SellerId.Value.ToString());
+        else if (request.UserId is not null)
+            headers.Add("UserId", request.UserId.Value.ToString());
+
+        return await _userHttpClient.GetAsync<InvoiceListResponse>($"{_controller}", headers);
     }
-    */
+
     public async Task<Result<InvoiceResponse?>> Get(Guid id)
     {
         return await _userHttpClient.GetAsync<InvoiceResponse?>($"{_controller}/{id}");
