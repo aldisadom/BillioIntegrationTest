@@ -1,5 +1,5 @@
-﻿using Contracts.Responses;
-using IntegrationTests.Models;
+﻿using Common;
+using Contracts.Responses;
 using Newtonsoft.Json;
 using Serilog;
 using System.Text;

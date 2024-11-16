@@ -1,6 +1,6 @@
 ﻿using TUnit.Core.Extensions;
 
-namespace BillioIntegrationTest.Helpers;
+namespace IntegrationTests.Helpers;
 
 public class TestDataHelper
 {
@@ -18,7 +18,10 @@ public class TestDataHelper
 
                 return (T)item;
             }
-            catch{}
+            catch (Exception ex) 
+            {
+                throw new Exception($"{typeof(T)} get/parse fail with message: {ex.Message}");
+            }
         }
 
         throw new Exception($"{typeof(T)} not found in test data: {key}");

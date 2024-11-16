@@ -1,14 +1,24 @@
-﻿namespace IntegrationTests.Models;
+﻿using Common;
+using System.ComponentModel.DataAnnotations;
 
-public class TestCaseModel<T>
+namespace IntegrationTests.Models;
+
+public class TestCaseBase
 {
-    public string TestCase = string.Empty;
+    public string TestName = string.Empty;
+    public override string ToString() => TestName;
+}
+
+public class TestCaseModel<T>: TestCaseBase
+{
     public required T Data { get; set; }
-    public ErrorModel? Error { get; set; }
+}
+
+public class TestCaseError<T> : TestCaseModel<T>
+{
+    public required ErrorModel Error { get; set; }
 
     public async Task CheckErrors(ErrorModel inputError) => await Error!.CheckErrors(inputError);
-
-    public override string ToString() => TestCase;
 }
 
 public static class ErrorModelExtension

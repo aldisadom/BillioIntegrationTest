@@ -1,7 +1,7 @@
-﻿using Contracts.Requests.User;
+﻿using Common;
+using Contracts.Requests.User;
 using Contracts.Responses;
 using Contracts.Responses.User;
-using IntegrationTests.Clients;
 
 namespace IntegrationTests.Interfaces;
 

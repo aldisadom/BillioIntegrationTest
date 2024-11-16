@@ -1,13 +1,13 @@
-﻿using BillioIntegrationTest.Helpers;
+﻿using Common;
 using Contracts.Requests.Seller;
 using Contracts.Responses;
-using Contracts.Responses.Invoice;
 using Contracts.Responses.Seller;
 using IntegrationTests.Clients;
+using IntegrationTests.Helpers;
 using IntegrationTests.Models;
+using LanguageExt.Pipes;
 using System.Net;
-using TUnit.Assertions.Extensions.Generic;
-using TUnit.Core.Extensions;
+using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
 
@@ -17,7 +17,7 @@ public static class SellerTestDataSources
     {
         yield return new()
         {
-            TestCase = Emails().First(),
+            TestName = Emails().First(),
             Data = new()
             {
                 UserEmail = UserTestDataSources.Emails().First(),
@@ -34,7 +34,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = Emails().ToArray()[1],
+            TestName = Emails().ToArray()[1],
             Data = new()
             {
                 UserEmail = UserTestDataSources.Emails().ToArray()[1],
@@ -50,11 +50,11 @@ public static class SellerTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseModel<SellerModel>> AddDataInvalid()
+    public static IEnumerable<TestCaseError<SellerModel>> AddDataInvalid()
     {
         yield return new()
         {
-            TestCase = "No email address",
+            TestName = "No email address",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -76,7 +76,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No company name",
+            TestName = "No company name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -98,7 +98,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No company number",
+            TestName = "No company number",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -120,7 +120,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No street",
+            TestName = "No street",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -142,7 +142,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No city",
+            TestName = "No city",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -164,7 +164,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No state",
+            TestName = "No state",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -186,7 +186,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No phone",
+            TestName = "No phone",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -208,7 +208,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No bank name",
+            TestName = "No bank name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -230,7 +230,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No bank number",
+            TestName = "No bank number",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -252,7 +252,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No user",
+            TestName = "No user",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -273,12 +273,11 @@ public static class SellerTestDataSources
             }
         };
     }
-
-    public static IEnumerable<TestCaseModel<SellerModel>> UpdateDataInvalid()
+    public static IEnumerable<TestCaseError<SellerModel>> UpdateDataInvalid()
     {
         yield return new()
         {
-            TestCase = "Random Id",
+            TestName = "Random Id",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.NotFound,
@@ -301,7 +300,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No email address",
+            TestName = "No email address",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -323,7 +322,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No company name",
+            TestName = "No company name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -345,7 +344,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No company number",
+            TestName = "No company number",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -367,7 +366,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No street",
+            TestName = "No street",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -389,7 +388,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No city",
+            TestName = "No city",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -411,7 +410,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No state",
+            TestName = "No state",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -433,7 +432,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No phone",
+            TestName = "No phone",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -455,7 +454,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No bank name",
+            TestName = "No bank name",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -477,7 +476,7 @@ public static class SellerTestDataSources
         };
         yield return new()
         {
-            TestCase = "No bank number",
+            TestName = "No bank number",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
@@ -498,13 +497,11 @@ public static class SellerTestDataSources
             }
         };
     }
-
     public static IEnumerable<string> Emails()
     {
         yield return "dragon_delight@winter.com";
         yield return "stark_supply_co@winterfell.com";
     }
-
 }
 
 public partial class Tests
@@ -598,7 +595,7 @@ public partial class Tests
     [MethodDataSource(typeof(SellerTestDataSources), nameof(SellerTestDataSources.AddDataInvalid))]
     [DependsOn(nameof(SellerAdd_Valid_Success), [typeof(TestCaseModel<SellerModel>)])]
     [DisplayName("Seller add, invalid data: $testCase")]
-    public async Task SellerAdd_InValid_Fail(TestCaseModel<SellerModel> testCase)
+    public async Task SellerAdd_InValid_Fail(TestCaseError<SellerModel> testCase)
     {
         SellerModel sellerModel = testCase.Data;
         SellerAddRequest addRequest = new()
@@ -714,8 +711,30 @@ public partial class Tests
     }
 
     [Test]
+    [DependsOn(nameof(SellerDelete_Valid_Success))]
+    public async Task SellerGetAllForUser_Valid_Success()
+    {        
+        var request = new SellerGetRequest()
+        {
+            UserId = GetUserFromTest(UserTestDataSources.Emails().First()).Id
+        };
+
+        var listResponseResult = await _sellerClient.Get(request);
+        SellerListResponse listResponse = listResponseResult.Match(
+            seller => { return seller; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(listResponse.Sellers)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+
+        await Assert.That(listResponse.Sellers[0].UserId).IsEquivalentTo(request.UserId.Value);
+    }
+
+    [Test]
     [MethodDataSource(typeof(SellerTestDataSources), nameof(SellerTestDataSources.Emails))]
-    [DependsOn(nameof(SellerAdd_Valid_Success), [typeof(SellerAddRequest)])]
+    [DependsOn(nameof(SellerAdd_Valid_Success), [typeof(TestCaseModel<SellerModel>)])]
     [DisplayName("Seller update, valid data: $email")]
     public async Task SellerUpdate_Valid_Success(string email)
     {
@@ -765,7 +784,7 @@ public partial class Tests
     [MethodDataSource(typeof(SellerTestDataSources), nameof(SellerTestDataSources.UpdateDataInvalid))]
     [DependsOn(nameof(SellerAdd_Valid_Success), [typeof(TestCaseModel<SellerModel>)])]
     [DisplayName("Seller update, invalid data: $testCase")]
-    public async Task SellerUpdate_InValid_Fail(TestCaseModel<SellerModel> testCase)
+    public async Task SellerUpdate_InValid_Fail(TestCaseError<SellerModel> testCase)
     {
         SellerModel seller = testCase.Data;
         SellerUpdateRequest updateRequest = new()
