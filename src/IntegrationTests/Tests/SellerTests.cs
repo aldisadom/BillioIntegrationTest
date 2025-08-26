@@ -3,16 +3,16 @@ using Contracts.Requests.Seller;
 using Contracts.Responses;
 using Contracts.Responses.Seller;
 using IntegrationTests.Clients;
-using IntegrationTests.Helpers;
 using IntegrationTests.Models;
-using LanguageExt.Pipes;
+using System.Collections.Concurrent;
 using System.Net;
-using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
 
 public static class SellerTestDataSources
 {
+
+    public static ConcurrentDictionary<string, SellerModel> SavedSellers = new();
     public static IEnumerable<TestCaseModel<SellerModel>> AddData()
     {
         yield return new()
@@ -507,13 +507,9 @@ public static class SellerTestDataSources
 public partial class Tests
 {
     private static readonly SellerClient _sellerClient = new();
-    public static SellerModel GetSellerFromTest(string email)
-    {
-        return TestDataHelper.GetData<SellerModel>(email, nameof(SellerAdd_Valid_Success));
-    }
 
     [Test]
-    [DependsOn(nameof(UserDelete_Valid_Success))]
+    [DependsOn("UserDelete_Valid_Success")]
     public async Task Seller_BeforeTests_DBEmpty()
     {
         var requestResult = await _sellerClient.Get();
@@ -536,7 +532,7 @@ public partial class Tests
         SellerModel sellerModel = testCase.Data;
         SellerAddRequest addRequest = new()
         {
-            UserId = GetUserFromTest(sellerModel.UserEmail).Id,
+            UserId = UserTestDataSources.SavedUsers[sellerModel.UserEmail].Id,
             Email = sellerModel.Email,
             CompanyName = sellerModel.CompanyName,
             CompanyNumber = sellerModel.CompanyNumber,
@@ -554,7 +550,7 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        await Assert.That(addResponse.Id).IsNotNull();
+        await Assert.That(addResponse.Id).IsNotDefault();
 
         var getResponseResult = await _sellerClient.Get(addResponse.Id);
         SellerResponse? getResponse = getResponseResult.Match(
@@ -588,7 +584,9 @@ public partial class Tests
             BankName = getResponse.BankName,
             BankNumber = getResponse.BankNumber
         };
-        TestContext.Current!.ObjectBag.Add(seller!.Email, seller);
+
+        if (!SellerTestDataSources.SavedSellers.TryAdd(addRequest.Email, seller))
+            throw new Exception($"Seller with email:{addRequest.Email} can not add to test data");
     }
 
     [Test]
@@ -600,7 +598,9 @@ public partial class Tests
         SellerModel sellerModel = testCase.Data;
         SellerAddRequest addRequest = new()
         {
-            UserId = string.IsNullOrEmpty(sellerModel.UserEmail) ? Guid.NewGuid() : GetUserFromTest(sellerModel.UserEmail).Id,
+            UserId = string.IsNullOrEmpty(sellerModel.UserEmail)
+                ? Guid.NewGuid()
+                : UserTestDataSources.SavedUsers[sellerModel.UserEmail].Id,
             Email = sellerModel.Email,
             CompanyName = sellerModel.CompanyName,
             CompanyNumber = sellerModel.CompanyNumber,
@@ -627,7 +627,7 @@ public partial class Tests
     {
         SellerAddRequest addRequest = new()
         {
-            UserId = GetUserFromTest(UserTestDataSources.Emails().First()).Id,
+            UserId = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id,
             Email = "delete@me.com",
             CompanyName = "Super deleters",
             CompanyNumber = "CN000000",
@@ -683,7 +683,7 @@ public partial class Tests
     [DependsOn(nameof(CustomerAdd_Valid_Success))]
     public async Task SellerDelete_WhenHaveSeller_Fail()
     {
-        Guid id = GetSellerFromTest(SellerTestDataSources.Emails().First()).Id;
+        Guid id = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().First()].Id;
 
         var deleteResponseResult = await _sellerClient.Delete(id);
         ErrorModel error = deleteResponseResult.Match(
@@ -713,10 +713,10 @@ public partial class Tests
     [Test]
     [DependsOn(nameof(SellerDelete_Valid_Success))]
     public async Task SellerGetAllForUser_Valid_Success()
-    {        
+    {
         var request = new SellerGetRequest()
         {
-            UserId = GetUserFromTest(UserTestDataSources.Emails().First()).Id
+            UserId = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id
         };
 
         var listResponseResult = await _sellerClient.Get(request);
@@ -738,7 +738,7 @@ public partial class Tests
     [DisplayName("Seller update, valid data: $email")]
     public async Task SellerUpdate_Valid_Success(string email)
     {
-        SellerModel sellerModel = GetSellerFromTest(email);
+        SellerModel sellerModel = SellerTestDataSources.SavedSellers[email];
 
         SellerUpdateRequest updateRequest = new()
         {
@@ -789,7 +789,9 @@ public partial class Tests
         SellerModel seller = testCase.Data;
         SellerUpdateRequest updateRequest = new()
         {
-            Id = seller.Id == default ? GetSellerFromTest(SellerTestDataSources.Emails().First()).Id : seller.Id,
+            Id = seller.Id == default
+                ? SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().First()].Id
+                : seller.Id,
             Email = seller.Email,
             CompanyName = seller.CompanyName,
             CompanyNumber = seller.CompanyNumber,
@@ -831,12 +833,5 @@ public partial class Tests
 
             await Assert.That(deleteResponse).IsTrue();
         }
-    }
-
-    [Test]
-    [DependsOn(nameof(CustomerDelete_AfterAll_Success))]
-    public static async Task SellerDelete_AfterAll_Success()
-    {
-        await Seller_Delete_All();
     }
 }

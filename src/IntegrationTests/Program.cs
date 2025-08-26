@@ -1,20 +1,8 @@
-﻿using Contracts.Requests.User;
-using IntegrationTests.Models;
-using TUnit.Core.Interfaces;
+﻿using IntegrationTests.Models;
 
 namespace IntegrationTests;
 
-internal class Program
-{
-    public record SingleLimiter : IParallelLimit
-    {
-        public int Limit => 1;
-    }
-    public record DoubleLimiter : IParallelLimit
-    {
-        public int Limit => 2;
-    }
-}
+internal class Program { }
 
 public class ArgumentFormatter : ArgumentDisplayFormatter
 {
@@ -28,7 +16,7 @@ public class ArgumentFormatter : ArgumentDisplayFormatter
 
     public override string FormatValue(object? value)
     {
-        var fixture = value as TestCaseBase;
-        return fixture?.TestName ?? "TestName not provided";
+        var testCase = value as TestCaseBase;
+        return testCase?.TestName ?? "TestName not provided";
     }
 }

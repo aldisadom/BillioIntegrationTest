@@ -1,29 +1,25 @@
-﻿using Contracts.Requests.Customer;
-using Contracts.Requests.Invoice;
-using Contracts.Requests.Seller;
+﻿namespace IntegrationTests.Models;
 
-namespace IntegrationTests.Models;
-
-public record InvoiceModel
+public record InvoiceTestModel
 {
     public string BucketKey { get; set; } = string.Empty;
     public string SellerEmail { get; set; } = string.Empty;
     public string CustomerEmail { get; set; } = string.Empty;
     public string UserEmail { get; set; } = string.Empty;
-    public List<InvoiceItemModel> Items { get; set; } = [];
+    public List<InvoiceItemTestModel> Items { get; set; } = [];
     public string Comments { get; set; } = string.Empty;
     public DateOnly DueDate { get; set; }
     public DateOnly CreatedDate { get; set; }
 }
 
-public record InvoiceItemModel
+public record InvoiceItemTestModel
 {
     public string Name = string.Empty;
     public decimal Quantity;
     public string Comments = string.Empty;
 }
 
-public record InvoiceDetaisUpdateModel
+public record InvoiceDetaisUpdateTestModel
 {
     public string BucketKey { get; set; } = string.Empty;
     public string? Comments { get; set; }

@@ -11,20 +11,94 @@ using Contracts.Responses.Item;
 using Contracts.Responses.Seller;
 using Contracts.Responses.User;
 using IntegrationTests.Clients;
-using IntegrationTests.Helpers;
-using IntegrationTests.Interfaces;
 using IntegrationTests.Models;
 using LanguageExt.Pipes;
-using Microsoft.VisualBasic;
+using System.Collections.Concurrent;
 using System.Net;
-using System.Xml.Linq;
-using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
 
 public static class InvoiceTestDataSources
 {
-    public static IEnumerable<TestCaseModel<InvoiceModel>> AddData()
+    public static ConcurrentDictionary<string, UserResponse> SavedUsers = new();
+    public static ConcurrentDictionary<string, SellerResponse> SavedSellers = new();
+    public static ConcurrentDictionary<string, CustomerResponse> SavedCustomers = new();
+    public static ConcurrentDictionary<string, ItemResponse> SavedItems = new();
+    public static ConcurrentDictionary<string, InvoiceResponse> SavedInvoices = new();
+
+    public static IEnumerable<string> InvoiceKeys()
+    {
+        yield return "Invoice 1";
+        yield return "Invoice 2";
+        yield return "Invoice 3";
+        yield return "Invoice 4";
+    }
+
+    public static string User0 = "TheSpider@spymaster.com";
+    public static string User1 = "ThreeEyedRaven@winterfell.com";
+
+    private static string Seller0 = "Night_watch";
+    private static string Seller1 = "Whispering_associates";
+
+    private static string Customer0 = "White_walkers";
+    private static string Customer1 = "Grove_druids";
+
+    private static string Item0 = "Crossbow";
+    private static string Item1 = "Halbert";
+
+    public static string User0_Seller0 = Seller0 + User0;
+    public static string User0_Seller1 = Seller1 + User0;
+    public static string User1_Seller0 = Seller0 + User1;
+    public static string User1_Seller1 = Seller1 + User1;
+
+    public static string User0_Seller0_Customer0 = Customer0 + Seller0 + User0;
+    public static string User0_Seller0_Customer1 = Customer1 + Seller0 + User0;
+    public static string User0_Seller1_Customer0 = Customer0 + Seller1 + User0;
+    public static string User0_Seller1_Customer1 = Customer1 + Seller1 + User0;
+    public static string User1_Seller0_Customer0 = Customer0 + Seller0 + User1;
+    public static string User1_Seller0_Customer1 = Customer1 + Seller0 + User1;
+    public static string User1_Seller1_Customer0 = Customer0 + Seller1 + User1;
+    public static string User1_Seller1_Customer1 = Customer1 + Seller1 + User1;
+
+    public static string User0_Seller0_Customer0_Item0 = Item0 + Customer0 + Seller0 + User0;
+    public static string User0_Seller0_Customer0_Item1 = Item1 + Customer0 + Seller0 + User0;
+    public static string User0_Seller0_Customer1_Item0 = Item0 + Customer1 + Seller0 + User0;
+    public static string User0_Seller0_Customer1_Item1 = Item1 + Customer1 + Seller0 + User0;
+    public static string User0_Seller1_Customer0_Item0 = Item0 + Customer0 + Seller1 + User0;
+    public static string User0_Seller1_Customer0_Item1 = Item1 + Customer0 + Seller1 + User0;
+    public static string User0_Seller1_Customer1_Item0 = Item0 + Customer1 + Seller1 + User0;
+    public static string User0_Seller1_Customer1_Item1 = Item1 + Customer1 + Seller1 + User0;
+    public static string User1_Seller0_Customer0_Item0 = Item0 + Customer0 + Seller0 + User1;
+    public static string User1_Seller0_Customer0_Item1 = Item1 + Customer0 + Seller0 + User1;
+    public static string User1_Seller0_Customer1_Item0 = Item0 + Customer1 + Seller0 + User1;
+    public static string User1_Seller0_Customer1_Item1 = Item1 + Customer1 + Seller0 + User1;
+    public static string User1_Seller1_Customer0_Item0 = Item0 + Customer0 + Seller1 + User1;
+    public static string User1_Seller1_Customer0_Item1 = Item1 + Customer0 + Seller1 + User1;
+    public static string User1_Seller1_Customer1_Item0 = Item0 + Customer1 + Seller1 + User1;
+    public static string User1_Seller1_Customer1_Item1 = Item1 + Customer1 + Seller1 + User1;
+
+    public static IEnumerable<string> UserEmails()
+    {
+        yield return User0;
+        yield return User1;
+    }
+    public static IEnumerable<string> SellerNames()
+    {
+        yield return Seller0;
+        yield return Seller1;
+    }
+    public static IEnumerable<string> CustomerNames()
+    {
+        yield return Customer0;
+        yield return Customer1;
+    }
+    public static IEnumerable<string> ItemNames()
+    {
+        yield return Item0;
+        yield return Item1;
+    }
+
+    public static IEnumerable<TestCaseModel<InvoiceTestModel>> AddData()
     {
         yield return new()
         {
@@ -32,18 +106,18 @@ public static class InvoiceTestDataSources
             Data = new()
             {
                 BucketKey = InvoiceKeys().First(),
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 1,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item1,
                         Quantity = 2,
                         Comments = "Old"
                     },
@@ -59,17 +133,17 @@ public static class InvoiceTestDataSources
             Data = new()
             {
                 BucketKey = InvoiceKeys().ToArray()[1],
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().ToArray()[1] + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer1,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().ToArray()[1] + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer1_Item0,
                         Quantity = 3,
                     },
                     new (){
-                        Name = ItemNames().First() + CustomerNames().ToArray()[1] + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer1_Item0,
                         Quantity = 4,
                     },
                 ],
@@ -83,13 +157,13 @@ public static class InvoiceTestDataSources
             Data = new()
             {
                 BucketKey = InvoiceKeys().ToArray()[2],
-                UserEmail = UserEmails().ToArray()[1],
-                SellerEmail = SellerNames().First() + UserEmails().ToArray()[1],
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().ToArray()[1],
+                UserEmail = User1,
+                SellerEmail = User1_Seller0,
+                CustomerEmail = User1_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().ToArray()[1],
+                        Name = User1_Seller0_Customer0_Item0,
                         Quantity = 5,
                         Comments = "New"
                     }
@@ -104,17 +178,17 @@ public static class InvoiceTestDataSources
             Data = new()
             {
                 BucketKey = InvoiceKeys().ToArray()[3],
-                UserEmail = UserEmails().ToArray()[1],
-                SellerEmail = SellerNames().ToArray()[1] + UserEmails().ToArray()[1],
-                CustomerEmail = CustomerNames().First() + SellerNames().ToArray()[1] + UserEmails().ToArray()[1],
+                UserEmail = User1,
+                SellerEmail = User1_Seller1,
+                CustomerEmail = User1_Seller1_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().ToArray()[1] + UserEmails().ToArray()[1],
+                        Name = User1_Seller1_Customer0_Item0,
                         Quantity = 7,
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().ToArray()[1] + UserEmails().ToArray()[1],
+                        Name = User1_Seller1_Customer0_Item1,
                         Quantity = 8,
                     },
                 ],
@@ -123,7 +197,7 @@ public static class InvoiceTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseError<InvoiceModel>> AddDataInvalid()
+    public static IEnumerable<TestCaseError<InvoiceTestModel>> AddDataInvalid()
     {
         yield return new()
         {
@@ -136,17 +210,17 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 10,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item1,
                         Quantity = 15,
                         Comments = "Old"
                     },
@@ -167,17 +241,17 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 10,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item1,
                         Quantity = 15,
                         Comments = "Old"
                     },
@@ -198,18 +272,18 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().ToArray()[1],
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User1_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 10,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item1,
                         Quantity = 15,
                         Comments = "Old"
                     },
@@ -230,17 +304,17 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 10,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item1,
                         Quantity = 15,
                         Comments = "Old"
                     },
@@ -261,18 +335,18 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().ToArray()[1],
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User1_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 10,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item1,
                         Quantity = 15,
                         Comments = "Old"
                     },
@@ -293,9 +367,9 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Comments = "Invoice com",
                 DueDate = new DateOnly(2024, 1, 1).AddDays(5),
                 CreatedDate = new DateOnly(2024, 1, 1)
@@ -312,9 +386,9 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Items = [],
                 Comments = "Invoice com",
                 DueDate = new DateOnly(2024, 1, 1).AddDays(5),
@@ -332,23 +406,23 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 10,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().ToArray()[1],
+                        Name = User1_Seller0_Customer0_Item1,
                         Quantity = 15,
                         Comments = "Old"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().ToArray()[1] + SellerNames().First() + UserEmails().ToArray()[1],
+                        Name = User1_Seller0_Customer1_Item1,
                         Quantity = 15,
                         Comments = "Old"
                     },
@@ -369,18 +443,18 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 10,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item1,
                         Comments = "Old"
                     },
                 ],
@@ -400,18 +474,18 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 10,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item1,
                         Quantity = 15,
                         Comments = "Old"
                     },
@@ -431,18 +505,18 @@ public static class InvoiceTestDataSources
             },
             Data = new()
             {
-                UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
                 Items =
                 [
                     new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item0,
                         Quantity = 10,
                         Comments = "New"
                     },
                     new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
+                        Name = User0_Seller0_Customer0_Item1,
                         Quantity = 15,
                         Comments = "Old"
                     },
@@ -453,7 +527,7 @@ public static class InvoiceTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseModel<InvoiceDetaisUpdateModel>> UpdateDetailsData()
+    public static IEnumerable<TestCaseModel<InvoiceDetaisUpdateTestModel>> UpdateDetailsData()
     {
         yield return new()
         {
@@ -479,7 +553,7 @@ public static class InvoiceTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseError<InvoiceDetaisUpdateModel>> UpdateDataInvalid()
+    public static IEnumerable<TestCaseError<InvoiceDetaisUpdateTestModel>> UpdateDataInvalid()
     {
         yield return new()
         {
@@ -530,46 +604,15 @@ public static class InvoiceTestDataSources
             }
         };
     }
-
-    public static IEnumerable<string> UserEmails()
-    {
-        yield return "TheSpider@spymaster.com";
-        yield return "ThreeEyedRaven@winterfell.com";
-    }
-    public static IEnumerable<string> SellerNames()
-    {
-        yield return "Night_watch";
-        yield return "Whispering_associates";
-    }
-    public static IEnumerable<string> CustomerNames()
-    {
-        yield return "White_walkers";
-        yield return "Grove_druids";
-    }
-    public static IEnumerable<string> ItemNames()
-    {
-        yield return "Crossbow";
-        yield return "Halbert";
-    }
-    public static IEnumerable<string> InvoiceKeys()
-    {
-        yield return "Invoice 1";
-        yield return "Invoice 2";
-        yield return "Invoice 3";
-        yield return "Invoice 4";
-    }
 }
 
 public partial class Tests
 {
     private static readonly InvoiceClient _invoiceClient = new();
-    public static T GetInvoicePrepFromTest<T>(string name)
+
+    public static InvoiceResponse GetInvoiceFromTest(string bucketKey)
     {
-        return TestDataHelper.GetData<T>(name, nameof(Invoice_Prepare_Data));
-    }
-    public static InvoiceResponse GetInvoiceFromTest(string createDate)
-    {
-        return TestDataHelper.GetData<InvoiceResponse>(createDate, nameof(InvoiceAdd_Valid_Success));
+        return InvoiceTestDataSources.SavedInvoices[bucketKey];
     }
     public static (SellerUpdateRequest seller, CustomerUpdateRequest customer, List<InvoiceItemUpdateRequest> items) ExtractUpdateFromInvoice(InvoiceResponse invoice)
     {
@@ -631,13 +674,12 @@ public partial class Tests
     {
         foreach (var userEmail in InvoiceTestDataSources.UserEmails())
         {
-            bool firstUser = userEmail == InvoiceTestDataSources.UserEmails().First();
             UserAddRequest user = new()
             {
                 Email = userEmail,
-                Name = firstUser ? "Varys" : "Bran",
-                LastName = firstUser ? "." : "Stark",
-                Password = "SecretWhisperer"
+                Name = "Name_" + userEmail,
+                LastName = "LastName_" + userEmail,
+                Password = "StrongPassword"
             };
 
             var userResult = await _userClient.Add(user);
@@ -653,7 +695,7 @@ public partial class Tests
                     UserId = userAdd.Id,
                     Email = sellerName + userEmail,
                     CompanyName = sellerName + user.Name,
-                    CompanyNumber = "Seller-12122",
+                    CompanyNumber = "Sel-12122",
                     Street = "Sel_Street",
                     City = "Sel_City",
                     State = "Sel_State",
@@ -675,7 +717,7 @@ public partial class Tests
                         SellerId = sellerAdd.Id,
                         Email = customerName + sellerName + userEmail,
                         CompanyName = customerName + seller.CompanyName,
-                        CompanyNumber = "CUSTOMER-12122",
+                        CompanyNumber = "CUS-12122",
                         Street = "CUS_Street",
                         City = "CUS_City",
                         State = "CUS_State",
@@ -689,9 +731,9 @@ public partial class Tests
                         error => { throw new Exception("Customer add: " + error.ToString()); }
                     );
 
+                    bool firstItem = true;
                     foreach (var itemName in InvoiceTestDataSources.ItemNames())
                     {
-                        bool firstItem = userEmail == InvoiceTestDataSources.ItemNames().First();
                         ItemAddRequest item = new()
                         {
                             CustomerId = customerAdd.Id,
@@ -711,7 +753,10 @@ public partial class Tests
                             item => { return item; },
                             error => { throw new Exception("Item get: " + error.ToString()); }
                         );
-                        TestContext.Current!.ObjectBag.Add(itemGet!.Name, itemGet);
+
+                        firstItem = false;
+                        if (!InvoiceTestDataSources.SavedItems.TryAdd(itemGet!.Name, itemGet))
+                            throw new Exception($"Item with name:{itemGet.Name} can not add to test data");
                     }
 
                     var customerGetResult = await _customerClient.Get(customerAdd.Id);
@@ -719,7 +764,8 @@ public partial class Tests
                         customer => { return customer; },
                         error => { throw new Exception("Customer get: " + error.ToString()); }
                     );
-                    TestContext.Current!.ObjectBag.Add(customerGet!.Email, customerGet);
+                    if (!InvoiceTestDataSources.SavedCustomers.TryAdd(customerGet!.Email, customerGet))
+                        throw new Exception($"Customer with email:{customerGet.Email} can not add to test data");
                 }
 
                 var sellerGetResult = await _sellerClient.Get(sellerAdd.Id);
@@ -727,7 +773,8 @@ public partial class Tests
                     seller => { return seller; },
                     error => { throw new Exception("Seller get: " + error.ToString()); }
                 );
-                TestContext.Current!.ObjectBag.Add(sellerGet!.Email, sellerGet);
+                if (!InvoiceTestDataSources.SavedSellers.TryAdd(sellerGet!.Email, sellerGet))
+                    throw new Exception($"Seller with email:{sellerGet.Email} can not add to test data");
             }
 
             var userGetResult = await _userClient.Get(userAdd.Id);
@@ -735,25 +782,24 @@ public partial class Tests
                 user => { return user; },
                 error => { throw new Exception("User get: " + error.ToString()); }
             );
-            TestContext.Current!.ObjectBag.Add(userGet!.Email, userGet);
+            if (!InvoiceTestDataSources.SavedUsers.TryAdd(userGet!.Email, userGet))
+                throw new Exception($"User with email:{userGet.Email} can not add to test data");
         }
     }
-
     [Test]
-    //[ParallelLimiter<SingleLimiter>]
     [DependsOn(nameof(Invoice_Prepare_Data))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.AddData))]
     [DisplayName("Invoice add, valid data: $testCase")]
-    public async Task InvoiceAdd_Valid_Success(TestCaseModel<InvoiceModel> testCase)
+    public async Task InvoiceAdd_Valid_Success(TestCaseModel<InvoiceTestModel> testCase)
     {
-        InvoiceModel invoiceModel = testCase.Data;
+        InvoiceTestModel invoiceModel = testCase.Data;
 
-        var user = GetInvoicePrepFromTest<UserResponse>(invoiceModel.UserEmail);
-        var seller = GetInvoicePrepFromTest<SellerResponse>(invoiceModel.SellerEmail);
-        var customer = GetInvoicePrepFromTest<CustomerResponse>(invoiceModel.CustomerEmail);
+        var user = InvoiceTestDataSources.SavedUsers[invoiceModel.UserEmail];
+        var seller = InvoiceTestDataSources.SavedSellers[invoiceModel.SellerEmail];
+        var customer = InvoiceTestDataSources.SavedCustomers[invoiceModel.CustomerEmail];
         var itemList = invoiceModel.Items.Select(i => new InvoiceItemRequest()
         {
-            Id = GetInvoicePrepFromTest<ItemResponse>(i.Name).Id,
+            Id = InvoiceTestDataSources.SavedItems[i.Name].Id,
             Quantity = i.Quantity,
             Comments = i.Comments
         }
@@ -776,7 +822,7 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        await Assert.That(addResponse.Id).IsNotNull();
+        await Assert.That(addResponse.Id).IsNotDefault();
 
         var getResponseResult = await _invoiceClient.Get(addResponse.Id);
         InvoiceResponse? getResponse = getResponseResult.Match(
@@ -794,7 +840,6 @@ public partial class Tests
 
         await Assert.That(getResponse.Seller).IsNotNull();
         await Assert.That(getResponse.Seller!.Id).IsEqualTo(seller.Id);
-        await Assert.That(getResponse.Seller!.UserId).IsEqualTo(seller.UserId);
         await Assert.That(getResponse.Seller!.Email).IsEqualTo(seller.Email);
         await Assert.That(getResponse.Seller!.CompanyName).IsEqualTo(seller.CompanyName);
         await Assert.That(getResponse.Seller!.Street).IsEqualTo(seller.Street);
@@ -806,7 +851,6 @@ public partial class Tests
 
         await Assert.That(getResponse.Customer).IsNotNull();
         await Assert.That(getResponse.Customer!.Id).IsEqualTo(customer.Id);
-        await Assert.That(getResponse.Customer!.SellerId).IsEqualTo(customer.SellerId);
         await Assert.That(getResponse.Customer!.SellerId).IsEqualTo(seller.Id);
         await Assert.That(getResponse.Customer!.Email).IsEqualTo(customer.Email);
         await Assert.That(getResponse.Customer!.CompanyName).IsEqualTo(customer.CompanyName);
@@ -824,7 +868,7 @@ public partial class Tests
         decimal totalPrice = 0;
         for (int i = 0; i < getResponse.Items!.Count; i++)
         {
-            var item = GetInvoicePrepFromTest<ItemResponse>(invoiceModel.Items[i].Name);
+            var item = InvoiceTestDataSources.SavedItems[invoiceModel.Items[i].Name];
 
             await Assert.That(getResponse.Items[i].Id).IsEqualTo(item.Id);
             await Assert.That(getResponse.Items[i].Name).IsEqualTo(item.Name);
@@ -837,7 +881,8 @@ public partial class Tests
         }
         await Assert.That(getResponse!.TotalPrice).IsEquivalentTo(totalPrice);
 
-        TestContext.Current!.ObjectBag.Add(invoiceModel.BucketKey, getResponse);
+        if (!InvoiceTestDataSources.SavedInvoices.TryAdd(invoiceModel.BucketKey, getResponse))
+            throw new Exception($"Invoice named:{invoiceModel.BucketKey} can not add to test data");
     }
 
     [Test]
@@ -845,22 +890,22 @@ public partial class Tests
     [DisplayName("Invoice add multiple invoices to same customer")]
     public async Task InvoiceAddMultipleToSameCustomer_Valid_Success()
     {
-        string userEmail = InvoiceTestDataSources.UserEmails().ToArray()[1];
-        string sellerEmail = InvoiceTestDataSources.SellerNames().ToArray()[1] + InvoiceTestDataSources.UserEmails().ToArray()[1];
-        string customerEmail = InvoiceTestDataSources.CustomerNames().ToArray()[1] + InvoiceTestDataSources.SellerNames().ToArray()[1] + InvoiceTestDataSources.UserEmails().ToArray()[1];
-        string itemName = InvoiceTestDataSources.ItemNames().First() + InvoiceTestDataSources.CustomerNames().ToArray()[1] + InvoiceTestDataSources.SellerNames().ToArray()[1] + InvoiceTestDataSources.UserEmails().ToArray()[1];
+        string userEmail = InvoiceTestDataSources.User1;
+        string sellerEmail = InvoiceTestDataSources.User1_Seller1;
+        string customerEmail = InvoiceTestDataSources.User1_Seller1_Customer1;
+        string itemName = InvoiceTestDataSources.User1_Seller1_Customer1_Item0;
 
-        var user = GetInvoicePrepFromTest<UserResponse>(userEmail);
-        var seller = GetInvoicePrepFromTest<SellerResponse>(sellerEmail);
-        var customer = GetInvoicePrepFromTest<CustomerResponse>(customerEmail);
+        var user = InvoiceTestDataSources.SavedUsers[userEmail];
+        var seller = InvoiceTestDataSources.SavedSellers[sellerEmail];
+        var customer = InvoiceTestDataSources.SavedCustomers[customerEmail];
         var itemList = new List<InvoiceItemRequest>()
         {
             new()
-            { 
-                Id = GetInvoicePrepFromTest<ItemResponse>(itemName).Id,
+            {
+                Id = InvoiceTestDataSources.SavedItems[itemName].Id,
                 Quantity = 1
             }
-        };        
+        };
 
         InvoiceAddRequest addRequest = new()
         {
@@ -879,7 +924,7 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        await Assert.That(addResponse.Id).IsNotNull();
+        await Assert.That(addResponse.Id).IsNotDefault();
 
         var getResponseResult = await _invoiceClient.Get(addResponse.Id);
         InvoiceResponse? getResponse = getResponseResult.Match(
@@ -896,7 +941,7 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        await Assert.That(addResponse.Id).IsNotNull();
+        await Assert.That(addResponse.Id).IsNotDefault();
 
         getResponseResult = await _invoiceClient.Get(addResponse.Id);
         getResponse = getResponseResult.Match(
@@ -911,13 +956,13 @@ public partial class Tests
     [DependsOn(nameof(InvoiceAddMultipleToSameCustomer_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.AddDataInvalid))]
     [DisplayName("Invoice add, invalid data: $testCase")]
-    public async Task InvoiceAdd_InValid_Fail(TestCaseError<InvoiceModel> testCase)
+    public async Task InvoiceAdd_InValid_Fail(TestCaseError<InvoiceTestModel> testCase)
     {
-        InvoiceModel invoiceModel = testCase.Data;
+        InvoiceTestModel invoiceModel = testCase.Data;
 
         var itemList = invoiceModel.Items?.Select(i => new InvoiceItemRequest()
         {
-            Id = GetInvoicePrepFromTest<ItemResponse>(i.Name).Id,
+            Id = InvoiceTestDataSources.SavedItems[i.Name].Id,
             Quantity = i.Quantity,
             Comments = i.Comments
         }
@@ -925,9 +970,15 @@ public partial class Tests
 
         InvoiceAddRequest addRequest = new()
         {
-            UserId = string.IsNullOrEmpty(invoiceModel.UserEmail) ? Guid.Empty : GetInvoicePrepFromTest<UserResponse>(invoiceModel.UserEmail).Id,
-            SellerId = string.IsNullOrEmpty(invoiceModel.SellerEmail) ? Guid.Empty : GetInvoicePrepFromTest<SellerResponse>(invoiceModel.SellerEmail).Id,
-            CustomerId = string.IsNullOrEmpty(invoiceModel.CustomerEmail) ? Guid.Empty : GetInvoicePrepFromTest<CustomerResponse>(invoiceModel.CustomerEmail).Id,
+            UserId = string.IsNullOrEmpty(invoiceModel.UserEmail)
+                ? Guid.Empty
+                : InvoiceTestDataSources.SavedUsers[invoiceModel.UserEmail].Id,
+            SellerId = string.IsNullOrEmpty(invoiceModel.SellerEmail)
+                ? Guid.Empty
+                : InvoiceTestDataSources.SavedSellers[invoiceModel.SellerEmail].Id,
+            CustomerId = string.IsNullOrEmpty(invoiceModel.CustomerEmail)
+                ? Guid.Empty
+                : InvoiceTestDataSources.SavedCustomers[invoiceModel.CustomerEmail].Id,
             Items = itemList!,
             Comments = invoiceModel.Comments,
             DueDate = invoiceModel.DueDate,
@@ -945,7 +996,7 @@ public partial class Tests
         {
             StatusCode = error.StatusCode,
             Message = error.Message,
-            
+
         };
 
         if (testCase.TestName == "Invalid seller id")
@@ -966,19 +1017,19 @@ public partial class Tests
     [DependsOn(nameof(InvoiceAddMultipleToSameCustomer_Valid_Success))]
     public async Task InvoiceDelete_Valid_Success()
     {
-        string userEmail = InvoiceTestDataSources.UserEmails().ToArray()[1];
-        string sellerEmail = InvoiceTestDataSources.SellerNames().ToArray()[1] + InvoiceTestDataSources.UserEmails().ToArray()[1];
-        string customerEmail = InvoiceTestDataSources.CustomerNames().ToArray()[1] + InvoiceTestDataSources.SellerNames().ToArray()[1] + InvoiceTestDataSources.UserEmails().ToArray()[1];
-        string itemName = InvoiceTestDataSources.ItemNames().First() + InvoiceTestDataSources.CustomerNames().ToArray()[1] + InvoiceTestDataSources.SellerNames().ToArray()[1] + InvoiceTestDataSources.UserEmails().ToArray()[1];
+        string userEmail = InvoiceTestDataSources.User1;
+        string sellerEmail = InvoiceTestDataSources.User1_Seller1;
+        string customerEmail = InvoiceTestDataSources.User1_Seller1_Customer1;
+        string itemName = InvoiceTestDataSources.User1_Seller1_Customer1_Item0;
 
-        var user = GetInvoicePrepFromTest<UserResponse>(userEmail);
-        var seller = GetInvoicePrepFromTest<SellerResponse>(sellerEmail);
-        var customer = GetInvoicePrepFromTest<CustomerResponse>(customerEmail);
+        var user = InvoiceTestDataSources.SavedUsers[userEmail];
+        var seller = InvoiceTestDataSources.SavedSellers[sellerEmail];
+        var customer = InvoiceTestDataSources.SavedCustomers[customerEmail];
         var itemList = new List<InvoiceItemRequest>()
         {
             new()
             {
-                Id = GetInvoicePrepFromTest<ItemResponse>(itemName).Id,
+                Id = InvoiceTestDataSources.SavedItems[itemName].Id,
                 Quantity = 1
             }
         };
@@ -1000,7 +1051,7 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        await Assert.That(addResponse.Id).IsNotNull();
+        await Assert.That(addResponse.Id).IsNotDefault();
 
         var deleteResponseResult = await _invoiceClient.Delete(addResponse.Id);
         bool deleteResponse = deleteResponseResult.Match(
@@ -1020,13 +1071,12 @@ public partial class Tests
     }
 
     [Test]
-    //[ParallelLimiter<SingleLimiter>] // brakes all tests
     [DependsOn(nameof(InvoiceAddMultipleToSameCustomer_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateDetailsData))]
     [DisplayName("Invoice update, details valid data: $testCase")]
-    public async Task InvoiceDetailsUpdate_Valid_Success(TestCaseModel<InvoiceDetaisUpdateModel> testCase)
+    public async Task InvoiceDetailsUpdate_Valid_Success(TestCaseModel<InvoiceDetaisUpdateTestModel> testCase)
     {
-        InvoiceDetaisUpdateModel invoiceModel = testCase.Data;
+        InvoiceDetaisUpdateTestModel invoiceModel = testCase.Data;
 
         var invoiceFromBucket = GetInvoiceFromTest(invoiceModel.BucketKey);
 
@@ -1070,9 +1120,9 @@ public partial class Tests
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateDataInvalid))]
     [DependsOn(nameof(InvoiceDetailsUpdate_Valid_Success))]
     [DisplayName("Invoice update, details invalid data: $testCase")]
-    public async Task InvoiceDetailsUpdate_Invalid_Fail(TestCaseError<InvoiceDetaisUpdateModel> testCase)
+    public async Task InvoiceDetailsUpdate_Invalid_Fail(TestCaseError<InvoiceDetaisUpdateTestModel> testCase)
     {
-        InvoiceDetaisUpdateModel invoiceModel = testCase.Data;
+        InvoiceDetaisUpdateTestModel invoiceModel = testCase.Data;
 
         var invoiceFromBucket = GetInvoiceFromTest(invoiceModel.BucketKey);
 
@@ -1226,7 +1276,7 @@ public partial class Tests
             CreatedDate = invoiceFromBucket.CreatedDate,
             InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = seller,
-            Customer = new ()
+            Customer = new()
             {
                 Id = customer.Id,
                 Email = customer.Email + "_new",
@@ -1328,7 +1378,7 @@ public partial class Tests
 
         (SellerUpdateRequest seller, CustomerUpdateRequest customer, List<InvoiceItemUpdateRequest> items) = ExtractUpdateFromInvoice(invoiceFromBucket);
 
-        List<InvoiceItemUpdateRequest> updatedItems = items.Select(i=> new InvoiceItemUpdateRequest()
+        List<InvoiceItemUpdateRequest> updatedItems = items.Select(i => new InvoiceItemUpdateRequest()
         {
             Id = i.Id,
             Name = i.Name + "_new",
@@ -1395,10 +1445,12 @@ public partial class Tests
 
         (SellerUpdateRequest seller, CustomerUpdateRequest customer, List<InvoiceItemUpdateRequest> items) = ExtractUpdateFromInvoice(invoiceFromBucket);
 
-        List<InvoiceItemUpdateRequest> updatedItems = new(){ 
+        List<InvoiceItemUpdateRequest> updatedItems = new(){
             new InvoiceItemUpdateRequest()
             {
-                Id = itemModel.Id == default ? seller.Id : itemModel.Id,
+                Id = itemModel.Id == default
+                    ? seller.Id
+                    : itemModel.Id,
                 Name = itemModel.Name,
                 Quantity = itemModel.Quantity,
                 Price = itemModel.Price
@@ -1533,27 +1585,6 @@ public partial class Tests
             await Assert.That(invoice.UserId).IsEquivalentTo(request.UserId!.Value);
     }
 
-    /*
-        UserEmail = UserEmails().First(),
-                SellerEmail = SellerNames().First() + UserEmails().First(),
-                CustomerEmail = CustomerNames().First() + SellerNames().First() + UserEmails().First(),
-                Items =
-                [
-                    new (){
-                        Name = ItemNames().First() + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
-                        Quantity = 1,
-                        Comments = "New"
-                    },
-                    new (){
-                        Name = ItemNames().ToArray()[1] + CustomerNames().First() + SellerNames().First() + UserEmails().First(),
-                        Quantity = 2,
-                        Comments = "Old"
-                    },
-                ],
-                Comments = "Invoice com",
-                DueDate = DateOnly.FromDateTime(DateTime.Now),
-                CreatedDate = DateOnly.FromDateTime(DateTime.Now),
-            */
     [Test]
     [DependsOn(nameof(InvoiceSellerUpdate_Valid_Success))]
     [DependsOn(nameof(InvoiceCustomerUpdate_Valid_Success))]
@@ -1563,28 +1594,27 @@ public partial class Tests
         var invoiceFromBucket = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().First());
 
         (SellerUpdateRequest seller, CustomerUpdateRequest customer, List<InvoiceItemUpdateRequest> items) = ExtractUpdateFromInvoice(invoiceFromBucket);
-                
+
         var getResponseResult = await _invoiceClient.Get(invoiceFromBucket.Id);
         InvoiceResponse? getResponse = getResponseResult.Match(
             invoice => { return invoice; },
             error => { throw new Exception(error.ToString()); }
         );
 
-        ItemResponse item1 = GetInvoicePrepFromTest<ItemResponse>(InvoiceTestDataSources.ItemNames().First() + InvoiceTestDataSources.CustomerNames().First() + InvoiceTestDataSources.SellerNames().First() + InvoiceTestDataSources.UserEmails().First());
-        ItemResponse item2 = GetInvoicePrepFromTest<ItemResponse>(InvoiceTestDataSources.ItemNames().ToArray()[1] + InvoiceTestDataSources.CustomerNames().First() + InvoiceTestDataSources.SellerNames().First() + InvoiceTestDataSources.UserEmails().First());
+        ItemResponse item1 = InvoiceTestDataSources.SavedItems[InvoiceTestDataSources.User0_Seller0_Customer0_Item0];
+        ItemResponse item2 = InvoiceTestDataSources.SavedItems[InvoiceTestDataSources.User0_Seller0_Customer0_Item1];
 
         await Assert.That(getResponse!.Items![0].Id).IsEquivalentTo(item1.Id);
         await Assert.That(getResponse!.Items![1].Id).IsEquivalentTo(item2.Id);
 
-        ItemResponse itemNew = item2;
-        List<InvoiceItemUpdateRequest> updatedItems = new ()
+        List<InvoiceItemUpdateRequest> updatedItems = new()
         {
             new InvoiceItemUpdateRequest()
             {
-                Id = itemNew.Id,
-                Name = itemNew.Name,
-                Quantity = itemNew.Quantity,
-                Price = itemNew.Price
+                Id = item2.Id,
+                Name = item2.Name,
+                Quantity = item2.Quantity,
+                Price = item2.Price
             }
         };
 
@@ -1619,7 +1649,7 @@ public partial class Tests
             .IsNotNull()
             .And.HasCount().EqualTo(1);
 
-        await Assert.That(getResponse!.Items![0].Id).IsEquivalentTo(itemNew.Id);
+        await Assert.That(getResponse!.Items![0].Id).IsEquivalentTo(item2.Id);
     }
 
     [Test]
@@ -1635,13 +1665,12 @@ public partial class Tests
             invoice => { return invoice; },
             error => { throw new Exception(error.ToString()); }
         );
+        CustomerResponse customerFromTest = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller0_Customer0];
 
-        CustomerResponse customerFromTest = GetInvoicePrepFromTest<CustomerResponse>(InvoiceTestDataSources.CustomerNames().First() + InvoiceTestDataSources.SellerNames().First() + InvoiceTestDataSources.UserEmails().First());
-        
         await Assert.That(getResponse!.Customer!.Id).IsEquivalentTo(customerFromTest.Id);
 
-        CustomerResponse customerNew = GetInvoicePrepFromTest<CustomerResponse>(InvoiceTestDataSources.CustomerNames().ToArray()[1] + InvoiceTestDataSources.SellerNames().First() + InvoiceTestDataSources.UserEmails().First());
-        ItemResponse itemNew = GetInvoicePrepFromTest<ItemResponse>(InvoiceTestDataSources.ItemNames().First() + InvoiceTestDataSources.CustomerNames().ToArray()[1] + InvoiceTestDataSources.SellerNames().First() + InvoiceTestDataSources.UserEmails().First());
+        CustomerResponse customerNew = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller0_Customer1];
+        ItemResponse itemNew = InvoiceTestDataSources.SavedItems[InvoiceTestDataSources.User0_Seller0_Customer1_Item0];
 
         List<InvoiceItemUpdateRequest> updatedItems = new()
         {
@@ -1702,7 +1731,7 @@ public partial class Tests
 
         await Assert.That(getResponse!.Items![0].Id).IsEquivalentTo(itemNew.Id);
     }
-    
+
     [Test]
     [DependsOn(nameof(InvoiceUpdateChangeCustomer_Valid_Success))]
     public async Task InvoiceUpdateChangeSeller_Valid_Success()
@@ -1717,13 +1746,13 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        SellerResponse sellerFromTest = GetInvoicePrepFromTest<SellerResponse>(InvoiceTestDataSources.SellerNames().First() + InvoiceTestDataSources.UserEmails().First());
+        SellerResponse sellerFromTest = InvoiceTestDataSources.SavedSellers[InvoiceTestDataSources.User0_Seller0];
 
         await Assert.That(getResponse!.Seller!.Id).IsEquivalentTo(sellerFromTest.Id);
 
-        SellerResponse sellerNew = GetInvoicePrepFromTest<SellerResponse>(InvoiceTestDataSources.SellerNames().ToArray()[1] + InvoiceTestDataSources.UserEmails().First());
-        CustomerResponse customerNew = GetInvoicePrepFromTest<CustomerResponse>(InvoiceTestDataSources.CustomerNames().First() + InvoiceTestDataSources.SellerNames().ToArray()[1] + InvoiceTestDataSources.UserEmails().First());
-        ItemResponse itemNew = GetInvoicePrepFromTest<ItemResponse>(InvoiceTestDataSources.ItemNames().First() + InvoiceTestDataSources.CustomerNames().First() + InvoiceTestDataSources.SellerNames().ToArray()[1] + InvoiceTestDataSources.UserEmails().First());
+        SellerResponse sellerNew = InvoiceTestDataSources.SavedSellers[InvoiceTestDataSources.User0_Seller1];
+        CustomerResponse customerNew = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller1_Customer0];
+        ItemResponse itemNew = InvoiceTestDataSources.SavedItems[InvoiceTestDataSources.User0_Seller1_Customer0_Item0];
 
         List<InvoiceItemUpdateRequest> updatedItems = new()
         {
@@ -1799,7 +1828,7 @@ public partial class Tests
 
         await Assert.That(getResponse!.Items![0].Id).IsEquivalentTo(itemNew.Id);
     }
-    
+
     public static async Task Invoice_Delete_All()
     {
         var listResponseResult = await _invoiceClient.Get();
@@ -1818,12 +1847,5 @@ public partial class Tests
 
             await Assert.That(deleteResponse).IsTrue();
         }
-    }
-
-    [Test]
-    [After(Class)]
-    public static async Task InvoiceDelete_AfterAll_Success()
-    {
-        await Invoice_Delete_All();
     }
 }

@@ -4,16 +4,17 @@ using Contracts.Responses;
 using Contracts.Responses.User;
 using IntegrationTests;
 using IntegrationTests.Clients;
-using IntegrationTests.Helpers;
 using IntegrationTests.Models;
 using LanguageExt;
+using System.Collections.Concurrent;
 using System.Net;
-using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
 
 public static class UserTestDataSources
 {
+    public static ConcurrentDictionary<string, UserModel> SavedUsers = new();
+
     public static IEnumerable<TestCaseModel<UserAddRequest>> AddData()
     {
         yield return new()
@@ -252,24 +253,9 @@ public static class UserTestDataSources
 public partial class Tests
 {
     private static readonly UserClient _userClient = new();
-    public static UserModel GetUserFromTest(string email)
-    {
-        return TestDataHelper.GetData<UserModel>(email, nameof(UserAdd_Valid_Success));
-    }
 
     [Test]
-    [Before(Class)]
-    public static async Task PrepareTestEnvironment()
-    {
-        await Invoice_Delete_All();
-        await Item_Delete_All();
-        await Customer_Delete_All();
-        await Seller_Delete_All();
-        await User_Delete_All();
-    }
-
-    [Test]
-    public static async Task User_BeforeTests_DBEmpty()
+    public async Task User_BeforeTests_DBEmpty()
     {
         var getResponseResult = await _userClient.Get();
         UserListResponse listResponse = getResponseResult.Match(
@@ -296,7 +282,7 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        await Assert.That(addResponse.Id).IsNotNull();
+        await Assert.That(addResponse.Id).IsNotDefault();
 
         var getResponseResult = await _userClient.Get(addResponse.Id);
         UserResponse? getResponse = getResponseResult.Match(
@@ -319,7 +305,8 @@ public partial class Tests
             Password = addRequest.Password
         };
 
-        TestContext.Current!.ObjectBag.Add(getResponse!.Email, user);
+        if (!UserTestDataSources.SavedUsers.TryAdd(addRequest.Email, user))
+            throw new Exception($"User with email:{addRequest.Email} can not add to test data");
     }
 
     [Test]
@@ -392,10 +379,10 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(UserDelete_Valid_Success))]
-    [DependsOn(nameof(SellerAdd_Valid_Success))]
+    [DependsOn("SellerAdd_Valid_Success")]
     public async Task UserDelete_WhenHaveSeller_Fail()
     {
-        Guid id = GetUserFromTest(UserTestDataSources.Emails().First()).Id;
+        Guid id = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id;
 
         var deleteResponseResult = await _userClient.Delete(id);
         ErrorModel error = deleteResponseResult.Match(
@@ -428,7 +415,7 @@ public partial class Tests
     [DisplayName("User login: $email")]
     public async Task UserLogin_Valid_Success(string email)
     {
-        UserModel user = GetUserFromTest(email);
+        UserModel user = UserTestDataSources.SavedUsers[email];
 
         UserLoginRequest loginRequest = new()
         {
@@ -447,7 +434,7 @@ public partial class Tests
             .And.IsEqualTo("fakeToken");
     }
 
-    [Test]    
+    [Test]
     [MethodDataSource(typeof(UserTestDataSources), nameof(UserTestDataSources.LoginDataInvalid))]
     [DependsOn(nameof(UserAdd_Valid_Success), [typeof(TestCaseModel<UserAddRequest>)])]
     [DisplayName("User login with invalid: $testCase")]
@@ -470,7 +457,7 @@ public partial class Tests
     [DisplayName("User update, valid data: $email")]
     public async Task UserUpdate_Valid_Success(string email)
     {
-        UserModel user = GetUserFromTest(email);
+        UserModel user = UserTestDataSources.SavedUsers[email];
 
         UserUpdateRequest updateRequest = new()
         {
@@ -508,7 +495,9 @@ public partial class Tests
         UserModel user = testCase.Data;
         UserUpdateRequest updateRequest = new()
         {
-            Id = user.Id == default ? GetUserFromTest(UserTestDataSources.Emails().First()).Id : user.Id,
+            Id = user.Id == default
+                ? UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id
+                : user.Id,
             Name = user.Name,
             LastName = user.LastName,
         };
@@ -543,12 +532,5 @@ public partial class Tests
 
             await Assert.That(deleteResponse).IsTrue();
         }
-    }
-
-    [Test]
-    [DependsOn(nameof(SellerDelete_AfterAll_Success))]
-    public static async Task UserDelete_AfterAll_Success()
-    {
-        await User_Delete_All();
     }
 }
