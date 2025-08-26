@@ -1,5 +1,4 @@
 ﻿using Common;
-using System.ComponentModel.DataAnnotations;
 
 namespace IntegrationTests.Models;
 
@@ -9,7 +8,7 @@ public class TestCaseBase
     public override string ToString() => TestName;
 }
 
-public class TestCaseModel<T>: TestCaseBase
+public class TestCaseModel<T> : TestCaseBase
 {
     public required T Data { get; set; }
 }

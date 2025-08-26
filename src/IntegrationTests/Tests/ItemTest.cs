@@ -1,19 +1,18 @@
 ﻿using Common;
-using Contracts.Requests.Customer;
 using Contracts.Requests.Item;
 using Contracts.Responses;
-using Contracts.Responses.Customer;
 using Contracts.Responses.Item;
 using IntegrationTests.Clients;
-using IntegrationTests.Helpers;
 using IntegrationTests.Models;
+using System.Collections.Concurrent;
 using System.Net;
-using static IntegrationTests.Program;
 
 namespace BillioIntegrationTest.Tests;
 
 public static class ItemTestDataSources
 {
+
+    public static ConcurrentDictionary<string, ItemModel> SavedItems = new();
     public static IEnumerable<TestCaseModel<ItemModel>> AddData()
     {
         yield return new()
@@ -255,9 +254,9 @@ public static class ItemTestDataSources
 public partial class Tests
 {
     private static readonly ItemClient _itemClient = new();
-    public static ItemModel GetItemFromTest(string email)
+    public static ItemModel GetItemFromTest(string name)
     {
-        return TestDataHelper.GetData<ItemModel>(email, nameof(ItemAdd_Valid_Success));
+        return ItemTestDataSources.SavedItems[name];
     }
 
     [Test]
@@ -276,7 +275,6 @@ public partial class Tests
     }
 
     [Test]
-    [ParallelLimiter<SingleLimiter>]
     [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
     [MethodDataSource(typeof(ItemTestDataSources), nameof(ItemTestDataSources.AddData))]
     [DisplayName("Item add, valid data: $testCase")]
@@ -285,7 +283,7 @@ public partial class Tests
         ItemModel itemModel = testCase.Data;
         ItemAddRequest addRequest = new()
         {
-            CustomerId = GetCustomerFromTest(itemModel.CustomerEmail).Id,
+            CustomerId = CustomerTestDataSources.SavedCustomers[itemModel.CustomerEmail].Id,
             Name = itemModel.Name,
             Quantity = itemModel.Quantity,
             Price = itemModel.Price
@@ -297,7 +295,7 @@ public partial class Tests
             error => { throw new Exception(error.ToString()); }
         );
 
-        await Assert.That(addResponse.Id).IsNotNull();
+        await Assert.That(addResponse.Id).IsNotDefault();
 
         var getResponseResult = await _itemClient.Get(addResponse.Id);
         ItemResponse? getResponse = getResponseResult.Match(
@@ -320,7 +318,9 @@ public partial class Tests
             Price = getResponse.Price,
             Quantity = getResponse.Quantity
         };
-        TestContext.Current!.ObjectBag.Add(item!.Name, item);
+
+        if (!ItemTestDataSources.SavedItems.TryAdd(addRequest.Name, item))
+            throw new Exception($"Item with name:{addRequest.Name} can not add to test data");
     }
 
     [Test]
@@ -332,7 +332,9 @@ public partial class Tests
         ItemModel itemModel = testCase.Data;
         ItemAddRequest addRequest = new()
         {
-            CustomerId = string.IsNullOrEmpty(itemModel.CustomerEmail) ? Guid.NewGuid() : GetCustomerFromTest(itemModel.CustomerEmail).Id,
+            CustomerId = string.IsNullOrEmpty(itemModel.CustomerEmail)
+                ? Guid.NewGuid()
+                : CustomerTestDataSources.SavedCustomers[itemModel.CustomerEmail].Id,
             Name = itemModel.Name,
             Price = itemModel.Price,
             Quantity = itemModel.Quantity
@@ -353,7 +355,7 @@ public partial class Tests
     {
         ItemAddRequest addRequest = new()
         {
-            CustomerId = GetCustomerFromTest(CustomerTestDataSources.Emails().First()).Id,
+            CustomerId = CustomerTestDataSources.SavedCustomers[CustomerTestDataSources.Emails().First()].Id,
             Name = "delete@me.com",
             Price = 999999999999999,
             Quantity = 1
@@ -419,7 +421,7 @@ public partial class Tests
     {
         var request = new ItemGetRequest()
         {
-            CustomerId = GetCustomerFromTest(CustomerTestDataSources.Emails().First()).Id
+            CustomerId = CustomerTestDataSources.SavedCustomers[CustomerTestDataSources.Emails().First()].Id
         };
 
         var listResponseResult = await _itemClient.Get(request);
@@ -517,12 +519,5 @@ public partial class Tests
 
             await Assert.That(deleteResponse).IsTrue();
         }
-    }
-
-    [Test]
-    [DependsOn(nameof(InvoiceDelete_AfterAll_Success))]
-    public static async Task ItemDelete_AfterAll_Success()
-    {
-        await Item_Delete_All();
     }
 }
