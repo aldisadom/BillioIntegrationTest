@@ -13,7 +13,7 @@ public class ItemClient : IItemClient
 
     public ItemClient()
     {
-        string billioUrl = "https://localhost:8090";
+        string billioUrl = "http://localhost:8090";
 
         _userHttpClient = new(billioUrl);
     }
