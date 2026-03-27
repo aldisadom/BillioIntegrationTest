@@ -13,7 +13,7 @@ public class SellerClient : ISellerClient
 
     public SellerClient()
     {
-        string billioUrl = "https://localhost:8091";
+        string billioUrl = "https://localhost:8090";
 
         _userHttpClient = new(billioUrl);
     }
