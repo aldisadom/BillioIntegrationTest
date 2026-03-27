@@ -13,7 +13,7 @@ public class UserClient : IUserClient
 
     public UserClient()
     {
-        string billioUrl = "https://localhost:8091";
+        string billioUrl = "https://localhost:8090";
 
         _userHttpClient = new(billioUrl);
     }
