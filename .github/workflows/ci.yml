@@ -10,7 +10,7 @@ env:
   DOTNET_VERSION: '8.0.x'
   DOTNET_CONFIGURATION: Release
   PROJECT_NAME: BillioIntegrationTest.sln
-  API_COMPOSE_DIR: ./Billio
+  API_COMPOSE_DIR: ./Biller
 
 jobs:
   build:
@@ -33,8 +33,8 @@ jobs:
       - name: Checkout BillioIntegrationTest repository
         uses: actions/checkout@v4
 
-      - name: Clone Billio repository
-        run: git clone https://github.com/aldisadom/Billio.git ${{ env.API_COMPOSE_DIR }}
+      - name: Clone Biller repository
+        run: git clone https://github.com/aldisadom/Biller.git ${{ env.API_COMPOSE_DIR }}
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -47,7 +47,7 @@ jobs:
 
       - name: Wait for API to be ready
         run: |
-          echo "Waiting for Billio API..."
+          echo "Waiting for Biller API..."
           for i in $(seq 1 5); do
             if curl -sf http://localhost:8090/health 2>/dev/null; then
               echo "API is up!"
