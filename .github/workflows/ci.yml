@@ -34,7 +34,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Clone Biller repository
-        run: git clone https://github.com/aldisadom/Biller.git ${{ env.API_COMPOSE_DIR }}
+        run: |
+          BILLER_REPO=https://github.com/aldisadom/Biller.git
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          if git ls-remote --exit-code --heads "$BILLER_REPO" "$BRANCH" >/dev/null 2>&1; then
+            echo "Found matching Biller branch '$BRANCH', using it"
+            git clone --branch "$BRANCH" --single-branch "$BILLER_REPO" ${{ env.API_COMPOSE_DIR }}
+          else
+            echo "No matching Biller branch '$BRANCH', using default branch"
+            git clone "$BILLER_REPO" ${{ env.API_COMPOSE_DIR }}
+          fi
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
