@@ -1,7 +1,7 @@
-﻿using Common;
-using Contracts.Requests.Item;
-using Contracts.Responses;
-using Contracts.Responses.Item;
+﻿using BillerContracts;
+using BillerContracts.Requests.Item;
+using BillerContracts.Responses;
+using BillerContracts.Responses.Item;
 using IntegrationTests.Interfaces;
 
 namespace IntegrationTests.Clients;

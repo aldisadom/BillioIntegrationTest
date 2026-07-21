@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  DOTNET_CONFIGURATION: Release
+  PROJECT_NAME: BillioIntegrationTest.sln
+  API_COMPOSE_DIR: ./Biller
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Build
+        run: dotnet build ${{ env.PROJECT_NAME }} --configuration ${{ env.DOTNET_CONFIGURATION }}
+
+  integration-tests:
+    name: Integration tests
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout BillioIntegrationTest repository
+        uses: actions/checkout@v4
+
+      - name: Clone Biller repository
+        run: git clone https://github.com/aldisadom/Biller.git ${{ env.API_COMPOSE_DIR }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Start services
+        working-directory: ${{ env.API_COMPOSE_DIR }}
+        run: docker compose -f docker-compose.yml up -d --build
+
+      - name: Wait for API to be ready
+        run: |
+          echo "Waiting for Biller API..."
+          for i in $(seq 1 5); do
+            if curl -sf http://localhost:8090/health 2>/dev/null; then
+              echo "API is up!"
+              exit 0
+            fi
+            echo "Attempt $i/5 - sleeping 10s..."
+            sleep 10
+          done
+          echo "ERROR: API did not become ready. Dumping logs:"
+          docker compose -f ${{ env.API_COMPOSE_DIR }}/docker-compose.yml logs
+          exit 1
+
+      - name: Run integration tests
+        run: |
+          dotnet restore ${{ env.PROJECT_NAME }}
+          dotnet build ${{ env.PROJECT_NAME }} --configuration ${{ env.DOTNET_CONFIGURATION }} --no-restore
+          dotnet test ${{ env.PROJECT_NAME }} --configuration ${{ env.DOTNET_CONFIGURATION }} --no-build \
+            --logger "trx;LogFileName=integration-results.trx" \
+            --results-directory ./TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: ./TestResults/*.trx
+
+      - name: Stop and clean up services
+        if: always()
+        working-directory: ${{ env.API_COMPOSE_DIR }}
+        run: docker compose -f docker-compose.yml down -v

@@ -1,4 +1,4 @@
-﻿using Common;
+﻿using BillerContracts;
 
 namespace IntegrationTests.Models;
 
