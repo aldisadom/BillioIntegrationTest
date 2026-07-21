@@ -1,8 +1,8 @@
-﻿using Common;
-using Contracts.Responses;
+﻿using BillerContracts.Responses;
 using Newtonsoft.Json;
 using Serilog;
 using System.Text;
+using BillerContracts;
 
 namespace IntegrationTests.Clients;
 
