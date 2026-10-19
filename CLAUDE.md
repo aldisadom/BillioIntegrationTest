@@ -26,6 +26,8 @@ End-to-end tests for the Biller API: TUnit tests that call a running Biller stac
 - Assert every field of a response, as the existing tests do.
 - A new Biller endpoint or rule gets a success test and one test per error.
 - No AutoMapper or any other mapping library, in any Biller repo. Build requests by hand.
+- Plans for work only in this repo go in `docs/plans/BIL-<n>-<slug>.md` here. Plans that change
+  several repos live in Biller's `docs/plans/`.
 - Before reading, comparing or using another Biller repo (including the Biller you run against),
   put it on the branch with this branch's name, else on up-to-date master:
   `bash ../Biller/.claude/skills/_sync-repos/scripts/sync-repos.sh --branch "$(git branch --show-current)" Biller BillerContracts BillerFrontEnd`
