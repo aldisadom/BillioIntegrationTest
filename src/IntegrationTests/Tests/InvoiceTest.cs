@@ -617,12 +617,12 @@ public static class InvoiceTestDataSources
     {
         yield return new()
         {
-            TestName = "Status over due is set only from the due date",
+            TestName = "Status over due is set only by the daily job",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Overdue is calculated from the due date"
+                ExtendedMessage = "Overdue status cannot be set manually"
             },
             Data = new()
             {
