@@ -51,6 +51,11 @@ public class InvoiceClient : IInvoiceClient
         return await _userHttpClient.PutAsync($"{_controller}", invoice);
     }
 
+    public async Task<Result<bool>> UpdateStatus(InvoiceUpdateStatusRequest invoice)
+    {
+        return await _userHttpClient.PutAsync($"{_controller}/update_status", invoice);
+    }
+
     public async Task<Result<bool>> Delete(Guid id)
     {
         return await _userHttpClient.DeleteAsync($"{_controller}/{id}");
