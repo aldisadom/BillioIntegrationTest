@@ -606,29 +606,25 @@ public static class InvoiceTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseModel<InvoiceStatus>> UpdateStatusData()
+    public static IEnumerable<TestCaseModel<InvoiceStatusChangeTestModel>> UpdateStatusData()
     {
-        yield return new() { TestName = "Status send", Data = InvoiceStatus.Send };
-        yield return new() { TestName = "Status payed", Data = InvoiceStatus.Payed };
-        yield return new() { TestName = "Status created", Data = InvoiceStatus.Created };
+        yield return new() { TestName = "Status payed to send", Data = new() { StartStatus = InvoiceStatus.Payed, Status = InvoiceStatus.Send } };
+        yield return new() { TestName = "Status send to payed", Data = new() { StartStatus = InvoiceStatus.Send, Status = InvoiceStatus.Payed } };
+        yield return new() { TestName = "Status send to created", Data = new() { StartStatus = InvoiceStatus.Send, Status = InvoiceStatus.Created } };
     }
 
-    public static IEnumerable<TestCaseError<InvoiceStatusUpdateTestModel>> UpdateStatusDataInvalid()
+    public static IEnumerable<TestCaseError<InvoiceStatus>> UpdateStatusDataInvalid()
     {
         yield return new()
         {
-            TestName = "Status over due is set only by the daily job",
+            TestName = "Status over due can not be set by hand",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
                 ExtendedMessage = "Overdue status cannot be set manually"
             },
-            Data = new()
-            {
-                BucketKey = InvoiceKeys().First(),
-                Status = InvoiceStatus.OverDue
-            }
+            Data = InvoiceStatus.OverDue
         };
         yield return new()
         {
@@ -639,11 +635,7 @@ public static class InvoiceTestDataSources
                 Message = "Validation failure",
                 ExtendedMessage = "Invalid invoice status: 99"
             },
-            Data = new()
-            {
-                BucketKey = InvoiceKeys().First(),
-                Status = (InvoiceStatus)99
-            }
+            Data = (InvoiceStatus)99
         };
     }
 }
@@ -693,6 +685,122 @@ public partial class Tests
             Comments = i.Comments
         }).ToList();
         return (seller, customer, items);
+    }
+
+    private static async Task<InvoiceResponse> AddInvoiceForUser1Customer1(string comments)
+    {
+        var user = InvoiceTestDataSources.SavedUsers[InvoiceTestDataSources.User1];
+        var seller = InvoiceTestDataSources.SavedSellers[InvoiceTestDataSources.User1_Seller1];
+        var customer = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User1_Seller1_Customer1];
+        var itemList = new List<InvoiceItemRequest>()
+        {
+            new()
+            {
+                Id = InvoiceTestDataSources.SavedItems[InvoiceTestDataSources.User1_Seller1_Customer1_Item0].Id,
+                Quantity = 1
+            }
+        };
+
+        InvoiceAddRequest addRequest = new()
+        {
+            UserId = user.Id,
+            SellerId = seller.Id,
+            CustomerId = customer.Id,
+            Items = itemList,
+            DueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(6)),
+            CreatedDate = DateOnly.FromDateTime(DateTime.Now),
+            Comments = comments
+        };
+
+        var addResponseResult = await _invoiceClient.Add(addRequest);
+        AddResponse addResponse = addResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(addResponse.Id).IsNotDefault();
+
+        return await GetInvoice(addResponse.Id);
+    }
+
+    private static async Task<InvoiceResponse> GetInvoice(Guid id)
+    {
+        var getResponseResult = await _invoiceClient.Get(id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(getResponse).IsNotNull();
+
+        return getResponse!;
+    }
+
+    private static async Task UpdateInvoiceStatus(Guid id, InvoiceStatus status)
+    {
+        InvoiceUpdateStatusRequest statusRequest = new()
+        {
+            Id = id,
+            Status = status
+        };
+
+        var statusResponseResult = await _invoiceClient.UpdateStatus(statusRequest);
+        bool statusResponse = statusResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(statusResponse).IsTrue();
+    }
+
+    // Asserts every field except Status and Comments, which the caller checks.
+    private static async Task AssertInvoiceDataUnchanged(InvoiceResponse actual, InvoiceResponse expected)
+    {
+        await Assert.That(actual.Id).IsEqualTo(expected.Id);
+        await Assert.That(actual.UserId).IsEqualTo(expected.UserId);
+        await Assert.That(actual.InvoiceNumber).IsEqualTo(expected.InvoiceNumber);
+        await Assert.That(actual.CreatedDate).IsEqualTo(expected.CreatedDate);
+        await Assert.That(actual.DueDate).IsEqualTo(expected.DueDate);
+        await Assert.That(actual.TotalPrice).IsEquivalentTo(expected.TotalPrice);
+
+        await Assert.That(actual.Seller).IsNotNull();
+        await Assert.That(actual.Seller!.Id).IsEqualTo(expected.Seller!.Id);
+        await Assert.That(actual.Seller!.UserId).IsEqualTo(expected.Seller!.UserId);
+        await Assert.That(actual.Seller!.Email).IsEqualTo(expected.Seller!.Email);
+        await Assert.That(actual.Seller!.CompanyName).IsEqualTo(expected.Seller!.CompanyName);
+        await Assert.That(actual.Seller!.CompanyNumber).IsEqualTo(expected.Seller!.CompanyNumber);
+        await Assert.That(actual.Seller!.Street).IsEqualTo(expected.Seller!.Street);
+        await Assert.That(actual.Seller!.City).IsEqualTo(expected.Seller!.City);
+        await Assert.That(actual.Seller!.State).IsEqualTo(expected.Seller!.State);
+        await Assert.That(actual.Seller!.Phone).IsEqualTo(expected.Seller!.Phone);
+        await Assert.That(actual.Seller!.BankName).IsEqualTo(expected.Seller!.BankName);
+        await Assert.That(actual.Seller!.BankNumber).IsEqualTo(expected.Seller!.BankNumber);
+
+        await Assert.That(actual.Customer).IsNotNull();
+        await Assert.That(actual.Customer!.Id).IsEqualTo(expected.Customer!.Id);
+        await Assert.That(actual.Customer!.SellerId).IsEqualTo(expected.Customer!.SellerId);
+        await Assert.That(actual.Customer!.Email).IsEqualTo(expected.Customer!.Email);
+        await Assert.That(actual.Customer!.CompanyName).IsEqualTo(expected.Customer!.CompanyName);
+        await Assert.That(actual.Customer!.CompanyNumber).IsEqualTo(expected.Customer!.CompanyNumber);
+        await Assert.That(actual.Customer!.Street).IsEqualTo(expected.Customer!.Street);
+        await Assert.That(actual.Customer!.City).IsEqualTo(expected.Customer!.City);
+        await Assert.That(actual.Customer!.State).IsEqualTo(expected.Customer!.State);
+        await Assert.That(actual.Customer!.Phone).IsEqualTo(expected.Customer!.Phone);
+        await Assert.That(actual.Customer!.InvoiceName).IsEqualTo(expected.Customer!.InvoiceName);
+        await Assert.That(actual.Customer!.InvoiceNumber).IsEqualTo(expected.Customer!.InvoiceNumber);
+
+        await Assert.That(actual.Items)
+            .IsNotNull()
+            .And.HasCount().EqualTo(expected.Items!.Count);
+
+        for (int i = 0; i < actual.Items!.Count; i++)
+        {
+            await Assert.That(actual.Items[i].Id).IsEqualTo(expected.Items[i].Id);
+            await Assert.That(actual.Items[i].Name).IsEqualTo(expected.Items[i].Name);
+            await Assert.That(actual.Items[i].Price).IsEquivalentTo(expected.Items[i].Price);
+            await Assert.That(actual.Items[i].Quantity).IsEquivalentTo(expected.Items[i].Quantity);
+            await Assert.That(actual.Items[i].Comments).IsEqualTo(expected.Items[i].Comments);
+        }
     }
 
     [Test]
@@ -976,6 +1084,7 @@ public partial class Tests
         );
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(1);
+        await Assert.That(getResponse!.Status).IsEqualTo(InvoiceStatus.Created);
 
         addRequest.Comments = "Invoice number should be 2";
         addResponseResult = await _invoiceClient.Add(addRequest);
@@ -993,6 +1102,7 @@ public partial class Tests
         );
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(2);
+        await Assert.That(getResponse!.Status).IsEqualTo(InvoiceStatus.Created);
     }
 
     [Test]
@@ -1060,41 +1170,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceAddMultipleToSameCustomer_Valid_Success))]
     public async Task InvoiceDelete_Valid_Success()
     {
-        string userEmail = InvoiceTestDataSources.User1;
-        string sellerEmail = InvoiceTestDataSources.User1_Seller1;
-        string customerEmail = InvoiceTestDataSources.User1_Seller1_Customer1;
-        string itemName = InvoiceTestDataSources.User1_Seller1_Customer1_Item0;
-
-        var user = InvoiceTestDataSources.SavedUsers[userEmail];
-        var seller = InvoiceTestDataSources.SavedSellers[sellerEmail];
-        var customer = InvoiceTestDataSources.SavedCustomers[customerEmail];
-        var itemList = new List<InvoiceItemRequest>()
-        {
-            new()
-            {
-                Id = InvoiceTestDataSources.SavedItems[itemName].Id,
-                Quantity = 1
-            }
-        };
-
-        InvoiceAddRequest addRequest = new()
-        {
-            UserId = user.Id,
-            SellerId = seller.Id,
-            CustomerId = customer.Id,
-            Items = itemList,
-            DueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(6)),
-            CreatedDate = DateOnly.FromDateTime(DateTime.Now),
-            Comments = "Invoice number should be 1"
-        };
-
-        var addResponseResult = await _invoiceClient.Add(addRequest);
-        AddResponse addResponse = addResponseResult.Match(
-            invoice => { return invoice; },
-            error => { throw new Exception(error.ToString()); }
-        );
-
-        await Assert.That(addResponse.Id).IsNotDefault();
+        InvoiceResponse addResponse = await AddInvoiceForUser1Customer1("Invoice number should be 1");
 
         var deleteResponseResult = await _invoiceClient.Delete(addResponse.Id);
         bool deleteResponse = deleteResponseResult.Match(
@@ -1899,80 +1975,38 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateStatusData))]
     [DisplayName("Invoice update status, valid data: $testCase")]
-    public async Task InvoiceStatusUpdate_Valid_Success(TestCaseModel<InvoiceStatus> testCase)
+    public async Task InvoiceStatusUpdate_Valid_Success(TestCaseModel<InvoiceStatusChangeTestModel> testCase)
     {
-        InvoiceStatus status = testCase.Data;
+        InvoiceStatusChangeTestModel statusChange = testCase.Data;
 
-        var user = InvoiceTestDataSources.SavedUsers[InvoiceTestDataSources.User1];
-        var seller = InvoiceTestDataSources.SavedSellers[InvoiceTestDataSources.User1_Seller1];
-        var customer = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User1_Seller1_Customer1];
-        var itemList = new List<InvoiceItemRequest>()
-        {
-            new()
-            {
-                Id = InvoiceTestDataSources.SavedItems[InvoiceTestDataSources.User1_Seller1_Customer1_Item0].Id,
-                Quantity = 1
-            }
-        };
+        InvoiceResponse added = await AddInvoiceForUser1Customer1("Status test");
+        await Assert.That(added.Status).IsEqualTo(InvoiceStatus.Created);
 
-        InvoiceAddRequest addRequest = new()
-        {
-            UserId = user.Id,
-            SellerId = seller.Id,
-            CustomerId = customer.Id,
-            Items = itemList,
-            DueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(6)),
-            CreatedDate = DateOnly.FromDateTime(DateTime.Now),
-            Comments = "Status test"
-        };
+        await UpdateInvoiceStatus(added.Id, statusChange.StartStatus);
 
-        var addResponseResult = await _invoiceClient.Add(addRequest);
-        AddResponse addResponse = addResponseResult.Match(
-            invoice => { return invoice; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        InvoiceResponse getResponse = await GetInvoice(added.Id);
+        await Assert.That(getResponse.Status).IsEqualTo(statusChange.StartStatus);
+        await Assert.That(getResponse.Comments).IsEqualTo(added.Comments);
+        await AssertInvoiceDataUnchanged(getResponse, added);
 
-        var getResponseResult = await _invoiceClient.Get(addResponse.Id);
-        InvoiceResponse? getResponse = getResponseResult.Match(
-            invoice => { return invoice; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        await UpdateInvoiceStatus(added.Id, statusChange.Status);
 
-        await Assert.That(getResponse!.Status).IsEqualTo(InvoiceStatus.Created);
+        getResponse = await GetInvoice(added.Id);
+        await Assert.That(getResponse.Status).IsEqualTo(statusChange.Status);
+        await Assert.That(getResponse.Comments).IsEqualTo(added.Comments);
+        await AssertInvoiceDataUnchanged(getResponse, added);
 
-        InvoiceUpdateStatusRequest statusRequest = new()
-        {
-            Id = addResponse.Id,
-            Status = status
-        };
-
-        var statusResponseResult = await _invoiceClient.UpdateStatus(statusRequest);
-        bool statusResponse = statusResponseResult.Match(
-            invoice => { return invoice; },
-            error => { throw new Exception(error.ToString()); }
-        );
-
-        await Assert.That(statusResponse).IsTrue();
-
-        getResponseResult = await _invoiceClient.Get(addResponse.Id);
-        getResponse = getResponseResult.Match(
-            invoice => { return invoice; },
-            error => { throw new Exception(error.ToString()); }
-        );
-
-        await Assert.That(getResponse!.Status).IsEqualTo(status);
-
-        (SellerUpdateRequest sellerUpdate, CustomerUpdateRequest customerUpdate, List<InvoiceItemUpdateRequest> items) = ExtractUpdateFromInvoice(getResponse);
+        (SellerUpdateRequest seller, CustomerUpdateRequest customer, List<InvoiceItemUpdateRequest> items) = ExtractUpdateFromInvoice(getResponse);
 
         InvoiceUpdateRequest updateRequest = new()
         {
-            Id = addResponse.Id,
+            Id = added.Id,
             Comments = "Editing keeps the status",
-            DueDate = addRequest.DueDate,
-            CreatedDate = addRequest.CreatedDate,
-            InvoiceNumber = getResponse.InvoiceNumber,
-            Seller = sellerUpdate,
-            Customer = customerUpdate,
+            DueDate = added.DueDate,
+            CreatedDate = added.CreatedDate,
+            InvoiceNumber = added.InvoiceNumber,
+            Seller = seller,
+            Customer = customer,
             Items = items,
         };
 
@@ -1984,16 +2018,12 @@ public partial class Tests
 
         await Assert.That(updateResponse).IsTrue();
 
-        getResponseResult = await _invoiceClient.Get(addResponse.Id);
-        getResponse = getResponseResult.Match(
-            invoice => { return invoice; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        getResponse = await GetInvoice(added.Id);
+        await Assert.That(getResponse.Status).IsEqualTo(statusChange.Status);
+        await Assert.That(getResponse.Comments).IsEqualTo(updateRequest.Comments);
+        await AssertInvoiceDataUnchanged(getResponse, added);
 
-        await Assert.That(getResponse!.Comments).IsEqualTo(updateRequest.Comments);
-        await Assert.That(getResponse!.Status).IsEqualTo(status);
-
-        var deleteResponseResult = await _invoiceClient.Delete(addResponse.Id);
+        var deleteResponseResult = await _invoiceClient.Delete(added.Id);
         bool deleteResponse = deleteResponseResult.Match(
             invoice => { return invoice; },
             error => { throw new Exception(error.ToString()); }
@@ -2003,17 +2033,21 @@ public partial class Tests
     }
 
     [Test]
-    [DependsOn(nameof(InvoiceAddMultipleToSameCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateStatusDataInvalid))]
     [DisplayName("Invoice update status, invalid data: $testCase")]
-    public async Task InvoiceStatusUpdate_Invalid_Fail(TestCaseError<InvoiceStatusUpdateTestModel> testCase)
+    public async Task InvoiceStatusUpdate_Invalid_Fail(TestCaseError<InvoiceStatus> testCase)
     {
-        var invoiceFromBucket = GetInvoiceFromTest(testCase.Data.BucketKey);
+        InvoiceResponse added = await AddInvoiceForUser1Customer1("Status test, invalid");
+        await UpdateInvoiceStatus(added.Id, InvoiceStatus.Send);
 
         InvoiceUpdateStatusRequest statusRequest = new()
         {
-            Id = invoiceFromBucket.Id,
-            Status = testCase.Data.Status
+            Id = added.Id,
+            Status = testCase.Data
         };
 
         var statusResponseResult = await _invoiceClient.UpdateStatus(statusRequest);
@@ -2024,13 +2058,18 @@ public partial class Tests
 
         await testCase.CheckErrors(error);
 
-        var getResponseResult = await _invoiceClient.Get(invoiceFromBucket.Id);
-        InvoiceResponse? getResponse = getResponseResult.Match(
+        InvoiceResponse getResponse = await GetInvoice(added.Id);
+        await Assert.That(getResponse.Status).IsEqualTo(InvoiceStatus.Send);
+        await Assert.That(getResponse.Comments).IsEqualTo(added.Comments);
+        await AssertInvoiceDataUnchanged(getResponse, added);
+
+        var deleteResponseResult = await _invoiceClient.Delete(added.Id);
+        bool deleteResponse = deleteResponseResult.Match(
             invoice => { return invoice; },
             error => { throw new Exception(error.ToString()); }
         );
 
-        await Assert.That(getResponse!.Status).IsEqualTo(InvoiceStatus.Created);
+        await Assert.That(deleteResponse).IsTrue();
     }
 
     [Test]

@@ -30,9 +30,9 @@ public record InvoiceDetaisUpdateTestModel
     public int InvoiceNumber { get; set; }
 }
 
-public record InvoiceStatusUpdateTestModel
+public record InvoiceStatusChangeTestModel
 {
-    public string BucketKey { get; set; } = string.Empty;
+    public InvoiceStatus StartStatus { get; set; }
     public InvoiceStatus Status { get; set; }
 }
 
