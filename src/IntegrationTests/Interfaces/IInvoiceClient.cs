@@ -13,4 +13,5 @@ public interface IInvoiceClient
     Task<Result<InvoiceResponse?>> Get(Guid id);
     Task<Result<InvoiceListResponse>> Get(InvoiceGetRequest request);
     Task<Result<bool>> Update(InvoiceUpdateRequest invoice);
+    Task<Result<bool>> UpdateStatus(InvoiceUpdateStatusRequest invoice);
 }

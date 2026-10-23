@@ -1,4 +1,6 @@
-﻿namespace IntegrationTests.Models;
+﻿using BillerContracts.Enums;
+
+namespace IntegrationTests.Models;
 
 public record InvoiceTestModel
 {
@@ -26,5 +28,11 @@ public record InvoiceDetaisUpdateTestModel
     public DateOnly DueDate { get; set; }
     public DateOnly CreatedDate { get; set; }
     public int InvoiceNumber { get; set; }
+}
+
+public record InvoiceStatusChangeTestModel
+{
+    public InvoiceStatus StartStatus { get; set; }
+    public InvoiceStatus Status { get; set; }
 }
 
