@@ -1,5 +1,4 @@
 ﻿using BillerContracts;
-using BillerContracts.Clients.Interfaces;
 using BillerContracts.Enums;
 using BillerContracts.Requests.Customer;
 using BillerContracts.Requests.Invoice;
@@ -12,8 +11,9 @@ using BillerContracts.Responses.Invoice;
 using BillerContracts.Responses.Item;
 using BillerContracts.Responses.Seller;
 using BillerContracts.Responses.User;
-using IntegrationTests.ApiClients;
+using IntegrationTests.Clients;
 using IntegrationTests.Models;
+using LanguageExt.Pipes;
 using System.Collections.Concurrent;
 using System.Net;
 
@@ -642,7 +642,7 @@ public static class InvoiceTestDataSources
 
 public partial class Tests
 {
-    private static readonly IInvoiceClient _invoiceClient = TestClients.Invoice;
+    private static readonly InvoiceClient _invoiceClient = new();
 
     public static InvoiceResponse GetInvoiceFromTest(string bucketKey)
     {
@@ -712,7 +712,11 @@ public partial class Tests
             Comments = comments
         };
 
-        AddResponse addResponse = await _invoiceClient.Add(addRequest);
+        var addResponseResult = await _invoiceClient.Add(addRequest);
+        AddResponse addResponse = addResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(addResponse.Id).IsNotDefault();
 
@@ -721,7 +725,11 @@ public partial class Tests
 
     private static async Task<InvoiceResponse> GetInvoice(Guid id)
     {
-        InvoiceResponse getResponse = await _invoiceClient.Get(id);
+        var getResponseResult = await _invoiceClient.Get(id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
 
@@ -736,7 +744,13 @@ public partial class Tests
             Status = status
         };
 
-        await _invoiceClient.UpdateStatus(statusRequest);
+        var statusResponseResult = await _invoiceClient.UpdateStatus(statusRequest);
+        bool statusResponse = statusResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(statusResponse).IsTrue();
     }
 
     // Asserts every field except Status and Comments, which the caller checks.
@@ -793,7 +807,11 @@ public partial class Tests
     [DependsOn(nameof(ItemGetAll_Valid_Success))]
     public async Task Invoice_BeforeTests_DBEmpty()
     {
-        InvoiceListResponse response = await _invoiceClient.Get();
+        var requestResult = await _invoiceClient.Get();
+        InvoiceListResponse response = requestResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(response.Invoices)
             .IsNotNull()
@@ -814,7 +832,11 @@ public partial class Tests
                 Password = "StrongPassword"
             };
 
-            AddResponse userAdd = await _userClient.Add(user);
+            var userResult = await _userClient.Add(user);
+            AddResponse userAdd = userResult.Match(
+                user => { return user; },
+                error => { throw new Exception("User add: " + error.ToString()); }
+            );
 
             foreach (var sellerName in InvoiceTestDataSources.SellerNames())
             {
@@ -832,7 +854,11 @@ public partial class Tests
                     BankNumber = "Sel_BankNumber"
                 };
 
-                AddResponse sellerAdd = await _sellerClient.Add(seller);
+                var sellerResult = await _sellerClient.Add(seller);
+                AddResponse sellerAdd = sellerResult.Match(
+                    seller => { return seller; },
+                    error => { throw new Exception("Seller add: " + error.ToString()); }
+                );
 
                 foreach (var customerName in InvoiceTestDataSources.CustomerNames())
                 {
@@ -849,7 +875,11 @@ public partial class Tests
                         InvoiceName = string.Concat(userEmail.AsSpan(0, 1), sellerName.AsSpan(0, 1), customerName.AsSpan(0, 1))
                     };
 
-                    AddResponse customerAdd = await _customerClient.Add(customer);
+                    var customerResult = await _customerClient.Add(customer);
+                    AddResponse customerAdd = customerResult.Match(
+                        customer => { return customer; },
+                        error => { throw new Exception("Customer add: " + error.ToString()); }
+                    );
 
                     bool firstItem = true;
                     foreach (var itemName in InvoiceTestDataSources.ItemNames())
@@ -862,26 +892,46 @@ public partial class Tests
                             Price = firstItem ? 10 : 20,
                         };
 
-                        AddResponse itemAdd = await _itemClient.Add(item);
+                        var itemResult = await _itemClient.Add(item);
+                        AddResponse itemAdd = itemResult.Match(
+                            item => { return item; },
+                            error => { throw new Exception("Item add: " + error.ToString()); }
+                        );
 
-                        ItemResponse itemGet = await _itemClient.Get(itemAdd.Id);
+                        var itemGetResult = await _itemClient.Get(itemAdd.Id);
+                        ItemResponse? itemGet = itemGetResult.Match(
+                            item => { return item; },
+                            error => { throw new Exception("Item get: " + error.ToString()); }
+                        );
 
                         firstItem = false;
                         if (!InvoiceTestDataSources.SavedItems.TryAdd(itemGet!.Name, itemGet))
                             throw new Exception($"Item with name:{itemGet.Name} can not add to test data");
                     }
 
-                    CustomerResponse customerGet = await _customerClient.Get(customerAdd.Id);
+                    var customerGetResult = await _customerClient.Get(customerAdd.Id);
+                    CustomerResponse? customerGet = customerGetResult.Match(
+                        customer => { return customer; },
+                        error => { throw new Exception("Customer get: " + error.ToString()); }
+                    );
                     if (!InvoiceTestDataSources.SavedCustomers.TryAdd(customerGet!.Email, customerGet))
                         throw new Exception($"Customer with email:{customerGet.Email} can not add to test data");
                 }
 
-                SellerResponse sellerGet = await _sellerClient.Get(sellerAdd.Id);
+                var sellerGetResult = await _sellerClient.Get(sellerAdd.Id);
+                SellerResponse? sellerGet = sellerGetResult.Match(
+                    seller => { return seller; },
+                    error => { throw new Exception("Seller get: " + error.ToString()); }
+                );
                 if (!InvoiceTestDataSources.SavedSellers.TryAdd(sellerGet!.Email, sellerGet))
                     throw new Exception($"Seller with email:{sellerGet.Email} can not add to test data");
             }
 
-            UserResponse userGet = await _userClient.Get(userAdd.Id);
+            var userGetResult = await _userClient.Get(userAdd.Id);
+            UserResponse? userGet = userGetResult.Match(
+                user => { return user; },
+                error => { throw new Exception("User get: " + error.ToString()); }
+            );
             if (!InvoiceTestDataSources.SavedUsers.TryAdd(userGet!.Email, userGet))
                 throw new Exception($"User with email:{userGet.Email} can not add to test data");
         }
@@ -916,11 +966,19 @@ public partial class Tests
             CreatedDate = invoiceModel.CreatedDate,
         };
 
-        AddResponse addResponse = await _invoiceClient.Add(addRequest);
+        var addResponseResult = await _invoiceClient.Add(addRequest);
+        AddResponse addResponse = addResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(addResponse.Id).IsNotDefault();
 
-        InvoiceResponse getResponse = await _invoiceClient.Get(addResponse.Id);
+        var getResponseResult = await _invoiceClient.Get(addResponse.Id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Id).IsEqualTo(addResponse.Id);
@@ -1011,21 +1069,37 @@ public partial class Tests
             Comments = "Invoice number should be 1"
         };
 
-        AddResponse addResponse = await _invoiceClient.Add(addRequest);
+        var addResponseResult = await _invoiceClient.Add(addRequest);
+        AddResponse addResponse = addResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(addResponse.Id).IsNotDefault();
 
-        InvoiceResponse getResponse = await _invoiceClient.Get(addResponse.Id);
+        var getResponseResult = await _invoiceClient.Get(addResponse.Id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(1);
         await Assert.That(getResponse!.Status).IsEqualTo(InvoiceStatus.Created);
 
         addRequest.Comments = "Invoice number should be 2";
-        addResponse = await _invoiceClient.Add(addRequest);
+        addResponseResult = await _invoiceClient.Add(addRequest);
+        addResponse = addResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(addResponse.Id).IsNotDefault();
 
-        getResponse = await _invoiceClient.Get(addResponse.Id);
+        getResponseResult = await _invoiceClient.Get(addResponse.Id);
+        getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(2);
         await Assert.That(getResponse!.Status).IsEqualTo(InvoiceStatus.Created);
@@ -1064,7 +1138,12 @@ public partial class Tests
             CreatedDate = invoiceModel.CreatedDate,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Add(addRequest)))!.Error;
+        var addResponseResult = await _invoiceClient.Add(addRequest);
+        var requestResult = await _invoiceClient.Add(addRequest);
+        ErrorModel error = requestResult.Match(
+            invoice => { throw new Exception(invoice.ToString()); },
+            error => { return error; }
+        );
 
         ErrorModel testError = new ErrorModel()
         {
@@ -1093,9 +1172,19 @@ public partial class Tests
     {
         InvoiceResponse addResponse = await AddInvoiceForUser1Customer1("Invoice number should be 1");
 
-        await _invoiceClient.Delete(addResponse.Id);
+        var deleteResponseResult = await _invoiceClient.Delete(addResponse.Id);
+        bool deleteResponse = deleteResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Get(addResponse.Id)))!.Error;
+        await Assert.That(deleteResponse).IsTrue();
+
+        var getResponseResult = await _invoiceClient.Get(addResponse.Id);
+        ErrorModel error = getResponseResult.Match(
+            invoice => { throw new Exception(invoice!.ToString()); },
+            error => { return error; }
+        );
         ErrorModel expectedError = new("Entity not found", $"Invoice:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -1124,9 +1213,19 @@ public partial class Tests
             Items = items,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        bool updateResponse = updateResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        InvoiceResponse getResponse = await _invoiceClient.Get(updateRequest.Id);
+        await Assert.That(updateResponse).IsTrue();
+
+        var getResponseResult = await _invoiceClient.Get(updateRequest.Id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Id).IsEqualTo(updateRequest.Id);
@@ -1160,7 +1259,11 @@ public partial class Tests
             Items = items,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Update(updateRequest)))!.Error;
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        ErrorModel error = updateResponseResult.Match(
+            seller => { throw new Exception(seller.ToString()); },
+            error => { return error; }
+        );
 
         await testCase.CheckErrors(error);
     }
@@ -1198,9 +1301,19 @@ public partial class Tests
             Items = items,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        bool updateResponse = updateResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        InvoiceResponse getResponse = await _invoiceClient.Get(updateRequest.Id);
+        await Assert.That(updateResponse).IsTrue();
+
+        var getResponseResult = await _invoiceClient.Get(updateRequest.Id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Seller).IsNotNull();
@@ -1253,7 +1366,11 @@ public partial class Tests
             Items = items,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Update(updateRequest)))!.Error;
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        ErrorModel error = updateResponseResult.Match(
+            seller => { throw new Exception(seller.ToString()); },
+            error => { return error; }
+        );
 
         if (sellerModel.Id != default)
             testCase.Error = new("Validation failure", $"Seller id {updateRequest.Seller.Id} is invalid for user id {invoiceFromBucket.UserId}", HttpStatusCode.BadRequest);
@@ -1294,9 +1411,19 @@ public partial class Tests
             Items = items,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        bool updateResponse = updateResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        InvoiceResponse getResponse = await _invoiceClient.Get(updateRequest.Id);
+        await Assert.That(updateResponse).IsTrue();
+
+        var getResponseResult = await _invoiceClient.Get(updateRequest.Id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Customer).IsNotNull();
@@ -1349,7 +1476,11 @@ public partial class Tests
             Items = items,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Update(updateRequest)))!.Error;
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        ErrorModel error = updateResponseResult.Match(
+            seller => { throw new Exception(seller.ToString()); },
+            error => { return error; }
+        );
 
         if (customerModel.Id != default)
             testCase.Error = new("Validation failure", $"Customer id {updateRequest.Customer.Id} is invalid for seller id {seller.Id}", HttpStatusCode.BadRequest);
@@ -1386,9 +1517,19 @@ public partial class Tests
             Items = updatedItems,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        bool updateResponse = updateResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        InvoiceResponse getResponse = await _invoiceClient.Get(updateRequest.Id);
+        await Assert.That(updateResponse).IsTrue();
+
+        var getResponseResult = await _invoiceClient.Get(updateRequest.Id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse!.Items)
             .IsNotNull()
@@ -1447,7 +1588,11 @@ public partial class Tests
             Items = updatedItems,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Update(updateRequest)))!.Error;
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        ErrorModel error = updateResponseResult.Match(
+            seller => { throw new Exception(seller.ToString()); },
+            error => { return error; }
+        );
         if (testCase.TestName == "Quantity = -2")
             testCase.Error.ExtendedMessage = "Please specify quantity";
 
@@ -1463,7 +1608,11 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Delete(id)))!.Error;
+        var deleteResponseResult = await _invoiceClient.Delete(id);
+        ErrorModel error = deleteResponseResult.Match(
+            invoice => { throw new Exception(invoice.ToString()); },
+            error => { return error; }
+        );
 
         ErrorModel expectedError = new("Entity not found", $"Invoice:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -1473,7 +1622,11 @@ public partial class Tests
     [DependsOn(nameof(InvoiceDelete_Valid_Success))]
     public async Task InvoiceGetAll_Valid_Success()
     {
-        InvoiceListResponse listResponse = await _invoiceClient.Get();
+        var listResponseResult = await _invoiceClient.Get();
+        InvoiceListResponse listResponse = listResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
@@ -1490,7 +1643,11 @@ public partial class Tests
             CustomerId = invoiceModel.Customer!.Id
         };
 
-        InvoiceListResponse listResponse = await _invoiceClient.Get(request);
+        var listResponseResult = await _invoiceClient.Get(request);
+        InvoiceListResponse listResponse = listResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
@@ -1509,7 +1666,11 @@ public partial class Tests
             SellerId = invoiceModel.Seller!.Id
         };
 
-        InvoiceListResponse listResponse = await _invoiceClient.Get(request);
+        var listResponseResult = await _invoiceClient.Get(request);
+        InvoiceListResponse listResponse = listResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
@@ -1529,7 +1690,11 @@ public partial class Tests
             UserId = invoiceModel.UserId
         };
 
-        InvoiceListResponse listResponse = await _invoiceClient.Get(request);
+        var listResponseResult = await _invoiceClient.Get(request);
+        InvoiceListResponse listResponse = listResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
@@ -1549,7 +1714,11 @@ public partial class Tests
 
         (SellerUpdateRequest seller, CustomerUpdateRequest customer, List<InvoiceItemUpdateRequest> items) = ExtractUpdateFromInvoice(invoiceFromBucket);
 
-        InvoiceResponse getResponse = await _invoiceClient.Get(invoiceFromBucket.Id);
+        var getResponseResult = await _invoiceClient.Get(invoiceFromBucket.Id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         ItemResponse item1 = InvoiceTestDataSources.SavedItems[InvoiceTestDataSources.User0_Seller0_Customer0_Item0];
         ItemResponse item2 = InvoiceTestDataSources.SavedItems[InvoiceTestDataSources.User0_Seller0_Customer0_Item1];
@@ -1580,9 +1749,19 @@ public partial class Tests
             Items = updatedItems,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        bool updateResponse = updateResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        getResponse = await _invoiceClient.Get(updateRequest.Id);
+        await Assert.That(updateResponse).IsTrue();
+
+        getResponseResult = await _invoiceClient.Get(updateRequest.Id);
+        getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Items)
@@ -1600,7 +1779,11 @@ public partial class Tests
 
         (SellerUpdateRequest seller, CustomerUpdateRequest customer, List<InvoiceItemUpdateRequest> items) = ExtractUpdateFromInvoice(invoiceFromBucket);
 
-        InvoiceResponse getResponse = await _invoiceClient.Get(invoiceFromBucket.Id);
+        var getResponseResult = await _invoiceClient.Get(invoiceFromBucket.Id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
         CustomerResponse customerFromTest = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller0_Customer0];
 
         await Assert.That(getResponse!.Customer!.Id).IsEquivalentTo(customerFromTest.Id);
@@ -1645,9 +1828,19 @@ public partial class Tests
             Items = updatedItems,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        bool updateResponse = updateResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        getResponse = await _invoiceClient.Get(updateRequest.Id);
+        await Assert.That(updateResponse).IsTrue();
+
+        getResponseResult = await _invoiceClient.Get(updateRequest.Id);
+        getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Customer!.Id).IsEquivalentTo(customerNew.Id);
@@ -1666,7 +1859,11 @@ public partial class Tests
 
         (SellerUpdateRequest seller, CustomerUpdateRequest customer, List<InvoiceItemUpdateRequest> items) = ExtractUpdateFromInvoice(invoiceFromBucket);
 
-        InvoiceResponse getResponse = await _invoiceClient.Get(invoiceFromBucket.Id);
+        var getResponseResult = await _invoiceClient.Get(invoiceFromBucket.Id);
+        InvoiceResponse? getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         SellerResponse sellerFromTest = InvoiceTestDataSources.SavedSellers[InvoiceTestDataSources.User0_Seller0];
 
@@ -1727,9 +1924,19 @@ public partial class Tests
             Items = updatedItems,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        bool updateResponse = updateResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        getResponse = await _invoiceClient.Get(updateRequest.Id);
+        await Assert.That(updateResponse).IsTrue();
+
+        getResponseResult = await _invoiceClient.Get(updateRequest.Id);
+        getResponse = getResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Seller!.Id).IsEquivalentTo(sellerNew.Id);
@@ -1743,7 +1950,22 @@ public partial class Tests
 
     public static async Task Invoice_Delete_All()
     {
-        await DeleteAll.Run("Invoice", async () => (await _invoiceClient.Get()).Invoices.Select(invoice => invoice.Id), _invoiceClient.Delete);
+        var listResponseResult = await _invoiceClient.Get();
+        InvoiceListResponse listResponse = listResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        foreach (var invoice in listResponse.Invoices)
+        {
+            var deleteResponseResult = await _invoiceClient.Delete(invoice.Id);
+            bool deleteResponse = deleteResponseResult.Match(
+                invoice => { return invoice; },
+                error => { throw new Exception(error.ToString()); }
+            );
+
+            await Assert.That(deleteResponse).IsTrue();
+        }
     }
 
     [Test]
@@ -1788,14 +2010,26 @@ public partial class Tests
             Items = items,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        var updateResponseResult = await _invoiceClient.Update(updateRequest);
+        bool updateResponse = updateResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(updateResponse).IsTrue();
 
         getResponse = await GetInvoice(added.Id);
         await Assert.That(getResponse.Status).IsEqualTo(statusChange.Status);
         await Assert.That(getResponse.Comments).IsEqualTo(updateRequest.Comments);
         await AssertInvoiceDataUnchanged(getResponse, added);
 
-        await _invoiceClient.Delete(added.Id);
+        var deleteResponseResult = await _invoiceClient.Delete(added.Id);
+        bool deleteResponse = deleteResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(deleteResponse).IsTrue();
     }
 
     [Test]
@@ -1816,7 +2050,11 @@ public partial class Tests
             Status = testCase.Data
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.UpdateStatus(statusRequest)))!.Error;
+        var statusResponseResult = await _invoiceClient.UpdateStatus(statusRequest);
+        ErrorModel error = statusResponseResult.Match(
+            invoice => { throw new Exception(invoice.ToString()); },
+            error => { return error; }
+        );
 
         await testCase.CheckErrors(error);
 
@@ -1825,7 +2063,13 @@ public partial class Tests
         await Assert.That(getResponse.Comments).IsEqualTo(added.Comments);
         await AssertInvoiceDataUnchanged(getResponse, added);
 
-        await _invoiceClient.Delete(added.Id);
+        var deleteResponseResult = await _invoiceClient.Delete(added.Id);
+        bool deleteResponse = deleteResponseResult.Match(
+            invoice => { return invoice; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        await Assert.That(deleteResponse).IsTrue();
     }
 
     [Test]
@@ -1838,7 +2082,11 @@ public partial class Tests
             Status = InvoiceStatus.Send
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.UpdateStatus(statusRequest)))!.Error;
+        var statusResponseResult = await _invoiceClient.UpdateStatus(statusRequest);
+        ErrorModel error = statusResponseResult.Match(
+            invoice => { throw new Exception(invoice.ToString()); },
+            error => { return error; }
+        );
 
         ErrorModel expectedError = new("Entity not found", $"Invoice:{statusRequest.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);

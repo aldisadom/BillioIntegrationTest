@@ -4,7 +4,7 @@ Failure here looks like:
 - A test passes whatever the API does: no assert on the result, an expected value taken from the response being checked, or a missing `[DependsOn]` so it runs before its data exists.
 - A test leaves data behind, or only passes with data from an earlier run.
 - An error test checks only the status code and not the message.
-- A URL or port is hard-coded in C# code instead of coming from `appsettings.json` (or a `ClientsOptions__*` environment variable).
+- A URL or port is hard-coded outside `src/IntegrationTests/Clients/`.
 - A mapping library (AutoMapper or similar) is added.
 - A Biller failure mode has no test: a wrong invoice total, a duplicate or skipped invoice number, an old invoice changing after master data is edited, a password or hash in a response, or one user's data returned to another. There are no tests yet for PDF generation, invoice status, pagination, or cross-user access.
 
