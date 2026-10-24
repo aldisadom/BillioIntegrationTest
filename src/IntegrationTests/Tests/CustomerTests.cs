@@ -746,17 +746,6 @@ public partial class Tests
 
     public static async Task Customer_Delete_All()
     {
-        // Get returns one page, so delete page by page until nothing is left
-        CustomerListResponse listResponse = await _customerClient.Get();
-
-        while (listResponse.Customers.Count > 0)
-        {
-            foreach (var customer in listResponse.Customers)
-            {
-                await _customerClient.Delete(customer.Id);
-            }
-
-            listResponse = await _customerClient.Get();
-        }
+        await DeleteAll.Run("Customer", async () => (await _customerClient.Get()).Customers.Select(customer => customer.Id), _customerClient.Delete);
     }
 }

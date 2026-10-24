@@ -1743,18 +1743,7 @@ public partial class Tests
 
     public static async Task Invoice_Delete_All()
     {
-        // Get returns one page, so delete page by page until nothing is left
-        InvoiceListResponse listResponse = await _invoiceClient.Get();
-
-        while (listResponse.Invoices.Count > 0)
-        {
-            foreach (var invoice in listResponse.Invoices)
-            {
-                await _invoiceClient.Delete(invoice.Id);
-            }
-
-            listResponse = await _invoiceClient.Get();
-        }
+        await DeleteAll.Run("Invoice", async () => (await _invoiceClient.Get()).Invoices.Select(invoice => invoice.Id), _invoiceClient.Delete);
     }
 
     [Test]

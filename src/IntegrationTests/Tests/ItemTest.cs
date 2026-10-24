@@ -448,17 +448,6 @@ public partial class Tests
 
     public static async Task Item_Delete_All()
     {
-        // Get returns one page, so delete page by page until nothing is left
-        ItemListResponse listResponse = await _itemClient.Get();
-
-        while (listResponse.Items.Count > 0)
-        {
-            foreach (var item in listResponse.Items)
-            {
-                await _itemClient.Delete(item.Id);
-            }
-
-            listResponse = await _itemClient.Get();
-        }
+        await DeleteAll.Run("Item", async () => (await _itemClient.Get()).Items.Select(item => item.Id), _itemClient.Delete);
     }
 }
