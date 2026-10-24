@@ -329,7 +329,7 @@ public partial class Tests
             Quantity = itemModel.Quantity
         };
 
-        ErrorModel error = await ApiError.Capture(() => _itemClient.Add(addRequest));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Add(addRequest)))!.Error;
 
         await testCase.Error!.CheckErrors(error);
     }
@@ -350,7 +350,7 @@ public partial class Tests
 
         await _itemClient.Delete(addResponse.Id);
 
-        ErrorModel error = await ApiError.Capture(() => _itemClient.Get(addResponse.Id));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Get(addResponse.Id)))!.Error;
         ErrorModel expectedError = new("Entity not found", $"Invoice item:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -361,7 +361,7 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        ErrorModel error = await ApiError.Capture(() => _itemClient.Delete(id));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Delete(id)))!.Error;
 
         ErrorModel expectedError = new("Entity not found", $"Invoice item:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -438,7 +438,7 @@ public partial class Tests
             Price = item.Price
         };
 
-        ErrorModel error = await ApiError.Capture(() => _itemClient.Update(updateRequest));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Update(updateRequest)))!.Error;
 
         if (item.Id != default)
             testCase.Error!.ExtendedMessage = $"Invoice item:{updateRequest.Id} not found";

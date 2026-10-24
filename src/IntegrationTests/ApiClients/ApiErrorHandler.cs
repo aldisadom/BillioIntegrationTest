@@ -6,23 +6,25 @@ using Newtonsoft.Json;
 namespace IntegrationTests.ApiClients;
 
 /// <summary>
-/// Holds the error response of one call made through <see cref="ApiError.Capture"/>.
+/// A failed API call, with the whole error the API sent back. The clients' own
+/// <see cref="ClientAPIException"/> only carries the status code and message as text.
 /// </summary>
-public class ErrorCapture
+public class ApiErrorException : ClientAPIException
 {
-    public ErrorModel? Error { get; set; }
+    public ErrorModel Error { get; }
+
+    public ApiErrorException(string message, ErrorModel error) : base(message)
+    {
+        Error = error;
+    }
 }
 
 /// <summary>
 /// Sits in every BillerContracts client's HTTP pipeline and turns a non-success response into an
-/// <see cref="ErrorModel"/> (status code, message, extended message). Inside <see cref="ApiError.Capture"/>
-/// it hands that to the capture; outside it fails the call with it.
-/// The clients' <c>ClientAPIException</c> only carries a text message.
+/// <see cref="ApiErrorException"/> with the status code, message and extended message.
 /// </summary>
-public class ErrorResponseRecorder : DelegatingHandler
+public class ApiErrorHandler : DelegatingHandler
 {
-    public static readonly AsyncLocal<ErrorCapture?> Current = new();
-
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
@@ -30,22 +32,14 @@ public class ErrorResponseRecorder : DelegatingHandler
         if (response.IsSuccessStatusCode)
             return response;
 
-        await response.Content.LoadIntoBufferAsync();
-        string body = await response.Content.ReadAsStringAsync(cancellationToken);
-        ErrorModel error = DecodeError(body, response);
-
-        // A call outside ApiError.Capture must succeed. Fail it here with the whole error, because
-        // the clients' exception text has no extended message.
-        ErrorCapture? capture = Current.Value;
-        if (capture is null)
+        using (response)
         {
-            response.Dispose();
-            throw new ClientAPIException($"{request.Method} {request.RequestUri} failed with {error.StatusCode}, "
-                + $"message: {error.Message}, extended message: {error.ExtendedMessage}");
-        }
+            string body = await response.Content.ReadAsStringAsync(cancellationToken);
+            ErrorModel error = DecodeError(body, response);
 
-        capture.Error = error;
-        return response;
+            throw new ApiErrorException($"{request.Method} {request.RequestUri} failed with {error.StatusCode}, "
+                + $"message: {error.Message}, extended message: {error.ExtendedMessage}", error);
+        }
     }
 
     private static ErrorModel DecodeError(string body, HttpResponseMessage response)

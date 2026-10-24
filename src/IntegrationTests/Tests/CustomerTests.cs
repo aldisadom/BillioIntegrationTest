@@ -590,7 +590,7 @@ public partial class Tests
             InvoiceName = customerModel.InvoiceName
         };
 
-        ErrorModel error = await ApiError.Capture(() => _customerClient.Add(addRequest));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _customerClient.Add(addRequest)))!.Error;
 
         await testCase.Error!.CheckErrors(error);
     }
@@ -616,7 +616,7 @@ public partial class Tests
 
         await _customerClient.Delete(addResponse.Id);
 
-        ErrorModel error = await ApiError.Capture(() => _customerClient.Get(addResponse.Id));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _customerClient.Get(addResponse.Id)))!.Error;
         ErrorModel expectedError = new("Entity not found", $"Invoice customer:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -627,7 +627,7 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        ErrorModel error = await ApiError.Capture(() => _customerClient.Delete(id));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _customerClient.Delete(id)))!.Error;
 
         ErrorModel expectedError = new("Entity not found", $"Invoice customer:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -640,7 +640,7 @@ public partial class Tests
     {
         Guid id = CustomerTestDataSources.SavedCustomers[CustomerTestDataSources.Emails().First()].Id;
 
-        ErrorModel error = await ApiError.Capture(() => _customerClient.Delete(id));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _customerClient.Delete(id)))!.Error;
 
         ErrorModel expectedError = new("Validation failure", $"Can not delete (please clear all dependants) or update (item not found): invoice_customers_id", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
@@ -736,7 +736,7 @@ public partial class Tests
             InvoiceNumber = customer.InvoiceNumber
         };
 
-        ErrorModel error = await ApiError.Capture(() => _customerClient.Update(updateRequest));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _customerClient.Update(updateRequest)))!.Error;
 
         if (customer.Id != default)
             testCase.Error!.ExtendedMessage = $"Invoice customer:{updateRequest.Id} not found";

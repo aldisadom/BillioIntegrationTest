@@ -305,7 +305,7 @@ public partial class Tests
     {
         UserAddRequest addRequest = testCase.Data;
 
-        ErrorModel error = await ApiError.Capture(() => _userClient.Add(addRequest));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Add(addRequest)))!.Error;
 
         await testCase.CheckErrors(error);
     }
@@ -326,7 +326,7 @@ public partial class Tests
 
         await _userClient.Delete(addResponse.Id);
 
-        ErrorModel error = await ApiError.Capture(() => _userClient.Get(addResponse.Id));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Get(addResponse.Id)))!.Error;
         ErrorModel expectedError = new("Entity not found", $"User:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -337,7 +337,7 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        ErrorModel error = await ApiError.Capture(() => _userClient.Delete(id));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Delete(id)))!.Error;
 
         ErrorModel expectedError = new("Entity not found", $"User:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -350,7 +350,7 @@ public partial class Tests
     {
         Guid id = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id;
 
-        ErrorModel error = await ApiError.Capture(() => _userClient.Delete(id));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Delete(id)))!.Error;
 
         ErrorModel expectedError = new("Validation failure", $"Can not delete (please clear all dependants) or update (item not found): user_id", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
@@ -396,7 +396,7 @@ public partial class Tests
     {
         UserLoginRequest loginRequest = testCase.Data;
 
-        ErrorModel error = await ApiError.Capture(() => _userClient.Login(loginRequest));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Login(loginRequest)))!.Error;
 
         await testCase.CheckErrors(error);
     }
@@ -442,7 +442,7 @@ public partial class Tests
             LastName = user.LastName,
         };
 
-        ErrorModel error = await ApiError.Capture(() => _userClient.Update(updateRequest));
+        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Update(updateRequest)))!.Error;
 
         if (user.Id != default)
             testCase.Error!.ExtendedMessage = $"User:{updateRequest.Id} not found";

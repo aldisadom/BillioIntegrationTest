@@ -29,7 +29,7 @@ public static class TestClients
 
         ServiceCollection services = new();
         services.AddBillerClients(configuration.GetSection("ClientsOptions"));
-        services.ConfigureHttpClientDefaults(builder => builder.AddHttpMessageHandler(() => new ErrorResponseRecorder()));
+        services.ConfigureHttpClientDefaults(builder => builder.AddHttpMessageHandler(() => new ApiErrorHandler()));
 
         return services.BuildServiceProvider();
     }
