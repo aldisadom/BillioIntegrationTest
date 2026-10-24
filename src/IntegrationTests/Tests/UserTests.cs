@@ -1,11 +1,11 @@
 ﻿using BillerContracts;
+using BillerContracts.Clients.Interfaces;
 using BillerContracts.Requests.User;
 using BillerContracts.Responses;
 using BillerContracts.Responses.User;
 using IntegrationTests;
-using IntegrationTests.Clients;
+using IntegrationTests.ApiClients;
 using IntegrationTests.Models;
-using LanguageExt;
 using System.Collections.Concurrent;
 using System.Net;
 
@@ -252,16 +252,12 @@ public static class UserTestDataSources
 [ArgumentDisplayFormatter<ArgumentFormatter>]
 public partial class Tests
 {
-    private static readonly UserClient _userClient = new();
+    private static readonly IUserClient _userClient = TestClients.User;
 
     [Test]
     public async Task User_BeforeTests_DBEmpty()
     {
-        var getResponseResult = await _userClient.Get();
-        UserListResponse listResponse = getResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        UserListResponse listResponse = await _userClient.Get();
 
         await Assert.That(listResponse.Users)
             .IsNotNull()
@@ -276,19 +272,11 @@ public partial class Tests
     {
         UserAddRequest addRequest = testCase.Data;
 
-        var addResponseResult = await _userClient.Add(addRequest);
-        AddResponse addResponse = addResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        AddResponse addResponse = await _userClient.Add(addRequest);
 
         await Assert.That(addResponse.Id).IsNotDefault();
 
-        var getResponseResult = await _userClient.Get(addResponse.Id);
-        UserResponse? getResponse = getResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        UserResponse getResponse = await _userClient.Get(addResponse.Id);
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Id).IsEqualTo(addResponse.Id);
@@ -317,11 +305,7 @@ public partial class Tests
     {
         UserAddRequest addRequest = testCase.Data;
 
-        var addResponseResult = await _userClient.Add(addRequest);
-        ErrorModel error = addResponseResult.Match(
-            user => { throw new Exception(user.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _userClient.Add(addRequest));
 
         await testCase.CheckErrors(error);
     }
@@ -338,25 +322,11 @@ public partial class Tests
             Password = "DeleteMe123"
         };
 
-        var addResponseResult = await _userClient.Add(addRequest);
-        AddResponse addResponse = addResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        AddResponse addResponse = await _userClient.Add(addRequest);
 
-        var deleteResponseResult = await _userClient.Delete(addResponse.Id);
-        bool deleteResponse = deleteResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        await _userClient.Delete(addResponse.Id);
 
-        await Assert.That(deleteResponse).IsTrue();
-
-        var getResponseResult = await _userClient.Get(addResponse.Id);
-        ErrorModel error = getResponseResult.Match(
-            user => { throw new Exception(user!.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _userClient.Get(addResponse.Id));
         ErrorModel expectedError = new("Entity not found", $"User:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -367,11 +337,7 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        var deleteResponseResult = await _userClient.Delete(id);
-        ErrorModel error = deleteResponseResult.Match(
-            user => { throw new Exception(user.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _userClient.Delete(id));
 
         ErrorModel expectedError = new("Entity not found", $"User:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -384,11 +350,7 @@ public partial class Tests
     {
         Guid id = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id;
 
-        var deleteResponseResult = await _userClient.Delete(id);
-        ErrorModel error = deleteResponseResult.Match(
-            user => { throw new Exception(user.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _userClient.Delete(id));
 
         ErrorModel expectedError = new("Validation failure", $"Can not delete (please clear all dependants) or update (item not found): user_id", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
@@ -398,11 +360,7 @@ public partial class Tests
     [DependsOn(nameof(UserDelete_Valid_Success))]
     public async Task UserGetAll_Valid_Success()
     {
-        var listResponseResult = await _userClient.Get();
-        UserListResponse listResponse = listResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        UserListResponse listResponse = await _userClient.Get();
 
         await Assert.That(listResponse.Users)
             .IsNotNull()
@@ -423,11 +381,7 @@ public partial class Tests
             Password = user.Password,
         };
 
-        var loginResponseResult = await _userClient.Login(loginRequest);
-        UserLoginResponse loginResponse = loginResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        UserLoginResponse loginResponse = await _userClient.Login(loginRequest);
 
         await Assert.That(loginResponse.Token)
             .IsNotNull()
@@ -442,11 +396,7 @@ public partial class Tests
     {
         UserLoginRequest loginRequest = testCase.Data;
 
-        var loginResponseResult = await _userClient.Login(loginRequest);
-        ErrorModel error = loginResponseResult.Match(
-            user => { throw new Exception(user.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _userClient.Login(loginRequest));
 
         await testCase.CheckErrors(error);
     }
@@ -466,19 +416,9 @@ public partial class Tests
             LastName = user.LastName + "_new",
         };
 
-        var updateResponseResult = await _userClient.Update(updateRequest);
-        bool updateResponse = updateResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        await _userClient.Update(updateRequest);
 
-        await Assert.That(updateResponse).IsTrue();
-
-        var getResponseResult = await _userClient.Get(user.Id);
-        UserResponse? getResponse = getResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        UserResponse getResponse = await _userClient.Get(user.Id);
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Id).IsEqualTo(updateRequest.Id);
@@ -502,11 +442,7 @@ public partial class Tests
             LastName = user.LastName,
         };
 
-        var updateRequestResult = await _userClient.Update(updateRequest);
-        ErrorModel error = updateRequestResult.Match(
-            user => { throw new Exception(user.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _userClient.Update(updateRequest));
 
         if (user.Id != default)
             testCase.Error!.ExtendedMessage = $"User:{updateRequest.Id} not found";
@@ -516,21 +452,6 @@ public partial class Tests
 
     public static async Task User_Delete_All()
     {
-        var listResponseResult = await _userClient.Get();
-        UserListResponse listResponse = listResponseResult.Match(
-            user => { return user; },
-            error => { throw new Exception(error.ToString()); }
-        );
-
-        foreach (var invoice in listResponse.Users)
-        {
-            var deleteResponseResult = await _userClient.Delete(invoice.Id);
-            bool deleteResponse = deleteResponseResult.Match(
-                user => { return user; },
-                error => { throw new Exception(error.ToString()); }
-            );
-
-            await Assert.That(deleteResponse).IsTrue();
-        }
+        await DeleteAll.Run("User", async () => (await _userClient.Get()).Users.Select(user => user.Id), _userClient.Delete);
     }
 }

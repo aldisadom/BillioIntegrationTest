@@ -1,8 +1,9 @@
 ﻿using BillerContracts;
+using BillerContracts.Clients.Interfaces;
 using BillerContracts.Requests.Seller;
 using BillerContracts.Responses;
 using BillerContracts.Responses.Seller;
-using IntegrationTests.Clients;
+using IntegrationTests.ApiClients;
 using IntegrationTests.Models;
 using System.Collections.Concurrent;
 using System.Net;
@@ -506,17 +507,13 @@ public static class SellerTestDataSources
 
 public partial class Tests
 {
-    private static readonly SellerClient _sellerClient = new();
+    private static readonly ISellerClient _sellerClient = TestClients.Seller;
 
     [Test]
     [DependsOn("UserDelete_Valid_Success")]
     public async Task Seller_BeforeTests_DBEmpty()
     {
-        var requestResult = await _sellerClient.Get();
-        SellerListResponse response = requestResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        SellerListResponse response = await _sellerClient.Get();
 
         await Assert.That(response.Sellers)
             .IsNotNull()
@@ -544,19 +541,11 @@ public partial class Tests
             BankNumber = sellerModel.BankNumber
         };
 
-        var addResponseResult = await _sellerClient.Add(addRequest);
-        AddResponse addResponse = addResponseResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        AddResponse addResponse = await _sellerClient.Add(addRequest);
 
         await Assert.That(addResponse.Id).IsNotDefault();
 
-        var getResponseResult = await _sellerClient.Get(addResponse.Id);
-        SellerResponse? getResponse = getResponseResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        SellerResponse getResponse = await _sellerClient.Get(addResponse.Id);
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Id).IsEqualTo(addResponse.Id);
@@ -612,11 +601,7 @@ public partial class Tests
             BankNumber = sellerModel.BankNumber
         };
 
-        var requestResult = await _sellerClient.Add(addRequest);
-        ErrorModel error = requestResult.Match(
-            seller => { throw new Exception(seller.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _sellerClient.Add(addRequest));
 
         await testCase.Error!.CheckErrors(error);
     }
@@ -639,25 +624,11 @@ public partial class Tests
             BankNumber = "HO00000000000"
         };
 
-        var addResponseResult = await _sellerClient.Add(addRequest);
-        AddResponse addResponse = addResponseResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        AddResponse addResponse = await _sellerClient.Add(addRequest);
 
-        var deleteResponseResult = await _sellerClient.Delete(addResponse.Id);
-        bool deleteResponse = deleteResponseResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        await _sellerClient.Delete(addResponse.Id);
 
-        await Assert.That(deleteResponse).IsTrue();
-
-        var getResponseResult = await _sellerClient.Get(addResponse.Id);
-        ErrorModel error = getResponseResult.Match(
-            user => { throw new Exception(user!.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _sellerClient.Get(addResponse.Id));
         ErrorModel expectedError = new("Entity not found", $"Invoice seller:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -668,11 +639,7 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        var deleteResponseResult = await _sellerClient.Delete(id);
-        ErrorModel error = deleteResponseResult.Match(
-            seller => { throw new Exception(seller.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _sellerClient.Delete(id));
 
         ErrorModel expectedError = new("Entity not found", $"Invoice seller:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -685,11 +652,7 @@ public partial class Tests
     {
         Guid id = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().First()].Id;
 
-        var deleteResponseResult = await _sellerClient.Delete(id);
-        ErrorModel error = deleteResponseResult.Match(
-            user => { throw new Exception(user.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _sellerClient.Delete(id));
 
         ErrorModel expectedError = new("Validation failure", $"Can not delete (please clear all dependants) or update (item not found): seller_id", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
@@ -699,11 +662,7 @@ public partial class Tests
     [DependsOn(nameof(SellerDelete_Valid_Success))]
     public async Task SellerGetAll_Valid_Success()
     {
-        var listResponseResult = await _sellerClient.Get();
-        SellerListResponse listResponse = listResponseResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        SellerListResponse listResponse = await _sellerClient.Get();
 
         await Assert.That(listResponse.Sellers)
             .IsNotNull()
@@ -719,11 +678,7 @@ public partial class Tests
             UserId = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id
         };
 
-        var listResponseResult = await _sellerClient.Get(request);
-        SellerListResponse listResponse = listResponseResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        SellerListResponse listResponse = await _sellerClient.Get(request);
 
         await Assert.That(listResponse.Sellers)
             .IsNotNull()
@@ -754,19 +709,9 @@ public partial class Tests
             BankNumber = sellerModel.BankNumber + "_new"
         };
 
-        var updateResponseResult = await _sellerClient.Update(updateRequest);
-        bool updateResponse = updateResponseResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        await _sellerClient.Update(updateRequest);
 
-        await Assert.That(updateResponse).IsTrue();
-
-        var getResponseResult = await _sellerClient.Get(updateRequest.Id);
-        SellerResponse? getResponse = getResponseResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
+        SellerResponse getResponse = await _sellerClient.Get(updateRequest.Id);
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Id).IsEqualTo(updateRequest.Id);
@@ -803,11 +748,7 @@ public partial class Tests
             BankNumber = seller.BankNumber
         };
 
-        var updateResponseResult = await _sellerClient.Update(updateRequest);
-        ErrorModel error = updateResponseResult.Match(
-            seller => { throw new Exception(seller.ToString()); },
-            error => { return error; }
-        );
+        ErrorModel error = await ApiError.Capture(() => _sellerClient.Update(updateRequest));
 
         if (seller.Id != default)
             testCase.Error!.ExtendedMessage = $"Invoice seller:{updateRequest.Id} not found";
@@ -817,21 +758,6 @@ public partial class Tests
 
     public static async Task Seller_Delete_All()
     {
-        var listResponseResult = await _sellerClient.Get();
-        SellerListResponse listResponse = listResponseResult.Match(
-            seller => { return seller; },
-            error => { throw new Exception(error.ToString()); }
-        );
-
-        foreach (var invoice in listResponse.Sellers)
-        {
-            var deleteResponseResult = await _sellerClient.Delete(invoice.Id);
-            bool deleteResponse = deleteResponseResult.Match(
-                seller => { return seller; },
-                error => { throw new Exception(error.ToString()); }
-            );
-
-            await Assert.That(deleteResponse).IsTrue();
-        }
+        await DeleteAll.Run("Seller", async () => (await _sellerClient.Get()).Sellers.Select(seller => seller.Id), _sellerClient.Delete);
     }
 }
