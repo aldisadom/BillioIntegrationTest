@@ -18,12 +18,8 @@ End-to-end tests for the Biller API: TUnit tests that call a running Biller stac
   or `TestCaseError<T>` with a `TestName` that shows in the output.
 - Entities created by one test are kept in the `Saved<Resource>s` dictionaries for later tests.
 - Error cases check the status code, message and extended message (`ErrorModel`).
-- The HTTP clients come from the `BillerContracts.Clients` NuGet package (same version as BillerFrontEnd),
-  built once in `ApiClients/TestClients.cs`. URLs are in `appsettings.json` (`ClientsOptions`); environment
-  variables such as `ClientsOptions__UserUrl` override them.
-- A failing call throws `ApiErrorException` (a `ClientAPIException` from `ApiClients/ApiErrorHandler.cs`) whose
-  `Error` holds the status code, message and extended message. Error tests:
-  `ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => call))!.Error;`
+- The HTTP clients are local copies in `src/IntegrationTests/Clients/` (base URL `http://localhost:8090`)
+  returning `Result<T>`. Request and response types come from the `BillerContracts` NuGet package.
 
 ## Conventions
 - Expected values come from the request, the spec, or data the test set up, never from the response being checked.

@@ -1,9 +1,8 @@
 ﻿using BillerContracts;
-using BillerContracts.Clients.Interfaces;
 using BillerContracts.Requests.Item;
 using BillerContracts.Responses;
 using BillerContracts.Responses.Item;
-using IntegrationTests.ApiClients;
+using IntegrationTests.Clients;
 using IntegrationTests.Models;
 using System.Collections.Concurrent;
 using System.Net;
@@ -254,7 +253,7 @@ public static class ItemTestDataSources
 
 public partial class Tests
 {
-    private static readonly IItemClient _itemClient = TestClients.Item;
+    private static readonly ItemClient _itemClient = new();
     public static ItemModel GetItemFromTest(string name)
     {
         return ItemTestDataSources.SavedItems[name];
@@ -264,7 +263,11 @@ public partial class Tests
     [DependsOn(nameof(CustomerDelete_Valid_Success))]
     public async Task Item_BeforeTests_DBEmpty()
     {
-        ItemListResponse response = await _itemClient.Get();
+        var requestResult = await _itemClient.Get();
+        ItemListResponse response = requestResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(response.Items)
             .IsNotNull()
@@ -286,11 +289,19 @@ public partial class Tests
             Price = itemModel.Price
         };
 
-        AddResponse addResponse = await _itemClient.Add(addRequest);
+        var addResponseResult = await _itemClient.Add(addRequest);
+        AddResponse addResponse = addResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(addResponse.Id).IsNotDefault();
 
-        ItemResponse getResponse = await _itemClient.Get(addResponse.Id);
+        var getResponseResult = await _itemClient.Get(addResponse.Id);
+        ItemResponse? getResponse = getResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Id).IsEqualTo(addResponse.Id);
@@ -329,7 +340,11 @@ public partial class Tests
             Quantity = itemModel.Quantity
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Add(addRequest)))!.Error;
+        var requestResult = await _itemClient.Add(addRequest);
+        ErrorModel error = requestResult.Match(
+            item => { throw new Exception(item.ToString()); },
+            error => { return error; }
+        );
 
         await testCase.Error!.CheckErrors(error);
     }
@@ -346,11 +361,25 @@ public partial class Tests
             Quantity = 1
         };
 
-        AddResponse addResponse = await _itemClient.Add(addRequest);
+        var addResponseResult = await _itemClient.Add(addRequest);
+        AddResponse addResponse = addResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        await _itemClient.Delete(addResponse.Id);
+        var deleteResponseResult = await _itemClient.Delete(addResponse.Id);
+        bool deleteResponse = deleteResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Get(addResponse.Id)))!.Error;
+        await Assert.That(deleteResponse).IsTrue();
+
+        var getResponseResult = await _itemClient.Get(addResponse.Id);
+        ErrorModel error = getResponseResult.Match(
+            customer => { throw new Exception(customer!.ToString()); },
+            error => { return error; }
+        );
         ErrorModel expectedError = new("Entity not found", $"Invoice item:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -361,7 +390,11 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Delete(id)))!.Error;
+        var deleteResponseResult = await _itemClient.Delete(id);
+        ErrorModel error = deleteResponseResult.Match(
+            item => { throw new Exception(item.ToString()); },
+            error => { return error; }
+        );
 
         ErrorModel expectedError = new("Entity not found", $"Invoice item:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -371,7 +404,11 @@ public partial class Tests
     [DependsOn(nameof(ItemDelete_Valid_Success))]
     public async Task ItemGetAll_Valid_Success()
     {
-        ItemListResponse listResponse = await _itemClient.Get();
+        var listResponseResult = await _itemClient.Get();
+        ItemListResponse listResponse = listResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(listResponse.Items)
             .IsNotNull()
@@ -387,7 +424,11 @@ public partial class Tests
             CustomerId = CustomerTestDataSources.SavedCustomers[CustomerTestDataSources.Emails().First()].Id
         };
 
-        ItemListResponse listResponse = await _itemClient.Get(request);
+        var listResponseResult = await _itemClient.Get(request);
+        ItemListResponse listResponse = listResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(listResponse.Items)
             .IsNotNull()
@@ -412,9 +453,19 @@ public partial class Tests
             Price = itemModel.Price + 666
         };
 
-        await _itemClient.Update(updateRequest);
+        var updateResponseResult = await _itemClient.Update(updateRequest);
+        bool updateResponse = updateResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
-        ItemResponse getResponse = await _itemClient.Get(updateRequest.Id);
+        await Assert.That(updateResponse).IsTrue();
+
+        var getResponseResult = await _itemClient.Get(updateRequest.Id);
+        ItemResponse? getResponse = getResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
 
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Id).IsEqualTo(updateRequest.Id);
@@ -438,7 +489,11 @@ public partial class Tests
             Price = item.Price
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Update(updateRequest)))!.Error;
+        var updateResponseResult = await _itemClient.Update(updateRequest);
+        ErrorModel error = updateResponseResult.Match(
+            item => { throw new Exception(item.ToString()); },
+            error => { return error; }
+        );
 
         if (item.Id != default)
             testCase.Error!.ExtendedMessage = $"Invoice item:{updateRequest.Id} not found";
@@ -448,6 +503,21 @@ public partial class Tests
 
     public static async Task Item_Delete_All()
     {
-        await DeleteAll.Run("Item", async () => (await _itemClient.Get()).Items.Select(item => item.Id), _itemClient.Delete);
+        var listResponseResult = await _itemClient.Get();
+        ItemListResponse listResponse = listResponseResult.Match(
+            item => { return item; },
+            error => { throw new Exception(error.ToString()); }
+        );
+
+        foreach (var invoice in listResponse.Items)
+        {
+            var deleteResponseResult = await _itemClient.Delete(invoice.Id);
+            bool deleteResponse = deleteResponseResult.Match(
+                item => { return item; },
+                error => { throw new Exception(error.ToString()); }
+            );
+
+            await Assert.That(deleteResponse).IsTrue();
+        }
     }
 }
