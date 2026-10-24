@@ -1,4 +1,5 @@
 ﻿using BillerContracts;
+using BillerContracts.Clients;
 using BillerContracts.Clients.Interfaces;
 using BillerContracts.Requests.Item;
 using BillerContracts.Responses;
@@ -329,7 +330,7 @@ public partial class Tests
             Quantity = itemModel.Quantity
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Add(addRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Add(addRequest)))!.Error!;
 
         await testCase.Error!.CheckErrors(error);
     }
@@ -350,7 +351,7 @@ public partial class Tests
 
         await _itemClient.Delete(addResponse.Id);
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Get(addResponse.Id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(addResponse.Id)))!.Error!;
         ErrorModel expectedError = new("Entity not found", $"Invoice item:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -361,7 +362,7 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Delete(id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Delete(id)))!.Error!;
 
         ErrorModel expectedError = new("Entity not found", $"Invoice item:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -438,7 +439,7 @@ public partial class Tests
             Price = item.Price
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _itemClient.Update(updateRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Update(updateRequest)))!.Error!;
 
         if (item.Id != default)
             testCase.Error!.ExtendedMessage = $"Invoice item:{updateRequest.Id} not found";

@@ -1,4 +1,5 @@
 ﻿using BillerContracts;
+using BillerContracts.Clients;
 using BillerContracts.Clients.Interfaces;
 using BillerContracts.Requests.Seller;
 using BillerContracts.Responses;
@@ -601,7 +602,7 @@ public partial class Tests
             BankNumber = sellerModel.BankNumber
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _sellerClient.Add(addRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _sellerClient.Add(addRequest)))!.Error!;
 
         await testCase.Error!.CheckErrors(error);
     }
@@ -628,7 +629,7 @@ public partial class Tests
 
         await _sellerClient.Delete(addResponse.Id);
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _sellerClient.Get(addResponse.Id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _sellerClient.Get(addResponse.Id)))!.Error!;
         ErrorModel expectedError = new("Entity not found", $"Invoice seller:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -639,7 +640,7 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _sellerClient.Delete(id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _sellerClient.Delete(id)))!.Error!;
 
         ErrorModel expectedError = new("Entity not found", $"Invoice seller:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -652,7 +653,7 @@ public partial class Tests
     {
         Guid id = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().First()].Id;
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _sellerClient.Delete(id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _sellerClient.Delete(id)))!.Error!;
 
         ErrorModel expectedError = new("Validation failure", $"Can not delete (please clear all dependants) or update (item not found): seller_id", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
@@ -748,7 +749,7 @@ public partial class Tests
             BankNumber = seller.BankNumber
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _sellerClient.Update(updateRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _sellerClient.Update(updateRequest)))!.Error!;
 
         if (seller.Id != default)
             testCase.Error!.ExtendedMessage = $"Invoice seller:{updateRequest.Id} not found";

@@ -1,4 +1,5 @@
 ﻿using BillerContracts;
+using BillerContracts.Clients;
 using BillerContracts.Clients.Interfaces;
 using BillerContracts.Requests.User;
 using BillerContracts.Responses;
@@ -305,7 +306,7 @@ public partial class Tests
     {
         UserAddRequest addRequest = testCase.Data;
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Add(addRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _userClient.Add(addRequest)))!.Error!;
 
         await testCase.CheckErrors(error);
     }
@@ -326,7 +327,7 @@ public partial class Tests
 
         await _userClient.Delete(addResponse.Id);
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Get(addResponse.Id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _userClient.Get(addResponse.Id)))!.Error!;
         ErrorModel expectedError = new("Entity not found", $"User:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -337,7 +338,7 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Delete(id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _userClient.Delete(id)))!.Error!;
 
         ErrorModel expectedError = new("Entity not found", $"User:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -350,7 +351,7 @@ public partial class Tests
     {
         Guid id = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id;
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Delete(id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _userClient.Delete(id)))!.Error!;
 
         ErrorModel expectedError = new("Validation failure", $"Can not delete (please clear all dependants) or update (item not found): user_id", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
@@ -396,7 +397,7 @@ public partial class Tests
     {
         UserLoginRequest loginRequest = testCase.Data;
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Login(loginRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _userClient.Login(loginRequest)))!.Error!;
 
         await testCase.CheckErrors(error);
     }
@@ -442,7 +443,7 @@ public partial class Tests
             LastName = user.LastName,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _userClient.Update(updateRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _userClient.Update(updateRequest)))!.Error!;
 
         if (user.Id != default)
             testCase.Error!.ExtendedMessage = $"User:{updateRequest.Id} not found";

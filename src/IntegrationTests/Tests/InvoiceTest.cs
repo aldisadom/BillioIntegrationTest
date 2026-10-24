@@ -1,4 +1,5 @@
 ﻿using BillerContracts;
+using BillerContracts.Clients;
 using BillerContracts.Clients.Interfaces;
 using BillerContracts.Enums;
 using BillerContracts.Requests.Customer;
@@ -1064,7 +1065,7 @@ public partial class Tests
             CreatedDate = invoiceModel.CreatedDate,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Add(addRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Add(addRequest)))!.Error!;
 
         ErrorModel testError = new ErrorModel()
         {
@@ -1095,7 +1096,7 @@ public partial class Tests
 
         await _invoiceClient.Delete(addResponse.Id);
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Get(addResponse.Id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(addResponse.Id)))!.Error!;
         ErrorModel expectedError = new("Entity not found", $"Invoice:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
@@ -1160,7 +1161,7 @@ public partial class Tests
             Items = items,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Update(updateRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
 
         await testCase.CheckErrors(error);
     }
@@ -1253,7 +1254,7 @@ public partial class Tests
             Items = items,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Update(updateRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
 
         if (sellerModel.Id != default)
             testCase.Error = new("Validation failure", $"Seller id {updateRequest.Seller.Id} is invalid for user id {invoiceFromBucket.UserId}", HttpStatusCode.BadRequest);
@@ -1349,7 +1350,7 @@ public partial class Tests
             Items = items,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Update(updateRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
 
         if (customerModel.Id != default)
             testCase.Error = new("Validation failure", $"Customer id {updateRequest.Customer.Id} is invalid for seller id {seller.Id}", HttpStatusCode.BadRequest);
@@ -1447,7 +1448,7 @@ public partial class Tests
             Items = updatedItems,
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Update(updateRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
         if (testCase.TestName == "Quantity = -2")
             testCase.Error.ExtendedMessage = "Please specify quantity";
 
@@ -1463,7 +1464,7 @@ public partial class Tests
     {
         Guid id = Guid.NewGuid();
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.Delete(id)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Delete(id)))!.Error!;
 
         ErrorModel expectedError = new("Entity not found", $"Invoice:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
@@ -1816,7 +1817,7 @@ public partial class Tests
             Status = testCase.Data
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.UpdateStatus(statusRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.UpdateStatus(statusRequest)))!.Error!;
 
         await testCase.CheckErrors(error);
 
@@ -1838,7 +1839,7 @@ public partial class Tests
             Status = InvoiceStatus.Send
         };
 
-        ErrorModel error = (await Assert.ThrowsAsync<ApiErrorException>(() => _invoiceClient.UpdateStatus(statusRequest)))!.Error;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.UpdateStatus(statusRequest)))!.Error!;
 
         ErrorModel expectedError = new("Entity not found", $"Invoice:{statusRequest.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
