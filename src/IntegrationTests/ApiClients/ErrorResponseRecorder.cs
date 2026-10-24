@@ -36,9 +36,13 @@ public class ErrorResponseRecorder : DelegatingHandler
 
         // A call outside ApiError.Capture must succeed. Fail it here with the whole error, because
         // the clients' exception text has no extended message.
-        ErrorCapture capture = Current.Value
-            ?? throw new ClientAPIException($"{request.Method} {request.RequestUri} failed with {error.StatusCode}, "
+        ErrorCapture? capture = Current.Value;
+        if (capture is null)
+        {
+            response.Dispose();
+            throw new ClientAPIException($"{request.Method} {request.RequestUri} failed with {error.StatusCode}, "
                 + $"message: {error.Message}, extended message: {error.ExtendedMessage}");
+        }
 
         capture.Error = error;
         return response;

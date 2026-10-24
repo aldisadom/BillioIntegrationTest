@@ -9,7 +9,7 @@ public static class DeleteAll
     public static async Task Run(string resource, Func<Task<IEnumerable<Guid>>> list, Func<Guid, Task> delete)
     {
         HashSet<Guid> deleted = [];
-        List<Guid> ids = (await list()).ToList();
+        List<Guid> ids = (await list()).Distinct().ToList();
 
         while (ids.Count > 0)
         {
@@ -21,7 +21,7 @@ public static class DeleteAll
                 await delete(id);
             }
 
-            ids = (await list()).ToList();
+            ids = (await list()).Distinct().ToList();
         }
     }
 }
