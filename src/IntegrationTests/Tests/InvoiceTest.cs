@@ -1304,7 +1304,7 @@ public partial class Tests
     }
 
     [Test]
-    [MethodDataSource(typeof(CustomerTestDataSources), nameof(CustomerTestDataSources.UpdateDataInvalid))]
+    [MethodDataSource(typeof(CustomerTestDataSources), nameof(CustomerTestDataSources.InvoiceUpdateDataInvalid))]
     [DependsOn(nameof(InvoiceCustomerUpdate_Valid_Success))]
     [DisplayName("Invoice update, customer invalid data: $testCase")]
     public async Task InvoiceCustomerUpdate_Invalid_Fail(TestCaseError<CustomerModel> testCase)

@@ -331,6 +331,34 @@ public partial class Tests
         await Assert.That(listResponse.Series.All(s => s.SellerId == request.SellerId)).IsTrue();
     }
 
+    [Test]
+    [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
+    public async Task SeriesGet_PageZero_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { Page = 0 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify page >= 1", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(SeriesAdd_Valid_Success), [typeof(TestCaseModel<SeriesModel>)])]
+    public async Task SeriesAdd_NameWithSpaces_IsTrimmed()
+    {
+        SeriesAddRequest addRequest = new()
+        {
+            SellerId = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().ToArray()[1]].Id,
+            Name = " TR "
+        };
+
+        AddResponse addResponse = await _seriesClient.Add(addRequest);
+        SeriesResponse getResponse = await _seriesClient.Get(addResponse.Id);
+
+        await Assert.That(getResponse.Name).IsEqualTo("TR");
+
+        await _seriesClient.Delete(addResponse.Id);
+    }
+
     public static async Task Series_Delete_All()
     {
         await DeleteAll.Run("Series", async () => (await _seriesClient.Get()).Series.Select(series => series.Id), _seriesClient.Delete);
