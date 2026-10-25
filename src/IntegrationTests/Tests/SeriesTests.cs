@@ -19,7 +19,7 @@ public static class SeriesTestDataSources
     {
         yield return new()
         {
-            TestName = "LL, next number defaults to 1",
+            TestName = "LL",
             Data = new()
             {
                 SellerEmail = SellerTestDataSources.Emails().First(),
@@ -28,32 +28,29 @@ public static class SeriesTestDataSources
         };
         yield return new()
         {
-            TestName = "LX, next number 10",
+            TestName = "LX",
             Data = new()
             {
                 SellerEmail = SellerTestDataSources.Emails().First(),
-                Name = "LX",
-                NextNumber = 10
+                Name = "LX"
             }
         };
         yield return new()
         {
-            TestName = "FF, next number 1",
+            TestName = "FF",
             Data = new()
             {
                 SellerEmail = SellerTestDataSources.Emails().ToArray()[1],
-                Name = "FF",
-                NextNumber = 1
+                Name = "FF"
             }
         };
         yield return new()
         {
-            TestName = "FX, next number 3",
+            TestName = "FX",
             Data = new()
             {
                 SellerEmail = SellerTestDataSources.Emails().ToArray()[1],
-                Name = "FX",
-                NextNumber = 3
+                Name = "FX"
             }
         };
     }
@@ -84,12 +81,6 @@ public static class SeriesTestDataSources
             TestName = "Name longer than 10 characters",
             Error = new("Validation failure", "Please specify name of at most 10 characters", HttpStatusCode.BadRequest),
             Data = new() { SellerEmail = SellerTestDataSources.Emails().First(), Name = "ABCDEFGHIJK" }
-        };
-        yield return new()
-        {
-            TestName = "Next number 0",
-            Error = new("Validation failure", "Please specify next number that must be > 0", HttpStatusCode.BadRequest),
-            Data = new() { SellerEmail = SellerTestDataSources.Emails().First(), Name = "N0", NextNumber = 0 }
         };
         yield return new()
         {
@@ -129,7 +120,7 @@ public static class SeriesTestDataSources
         {
             TestName = "Name used by another series of the seller",
             Error = new("Validation failure", "Change me", HttpStatusCode.BadRequest),
-            Data = new() { Name = "LL", NextNumber = 10 }
+            Data = new() { Name = "LL", NextNumber = 1 }
         };
     }
 }
@@ -160,8 +151,7 @@ public partial class Tests
         SeriesAddRequest addRequest = new()
         {
             SellerId = SellerTestDataSources.SavedSellers[seriesModel.SellerEmail].Id,
-            Name = seriesModel.Name,
-            NextNumber = seriesModel.NextNumber
+            Name = seriesModel.Name
         };
 
         AddResponse addResponse = await _seriesClient.Add(addRequest);
@@ -174,7 +164,7 @@ public partial class Tests
         await Assert.That(getResponse!.Id).IsEqualTo(addResponse.Id);
         await Assert.That(getResponse!.SellerId).IsEqualTo(addRequest.SellerId);
         await Assert.That(getResponse!.Name).IsEqualTo(addRequest.Name);
-        await Assert.That(getResponse!.NextNumber).IsEqualTo(addRequest.NextNumber ?? 1);
+        await Assert.That(getResponse!.NextNumber).IsEqualTo(1);
 
         SeriesModel series = new()
         {
@@ -203,8 +193,7 @@ public partial class Tests
                 "unknown" => Guid.NewGuid(),
                 _ => SellerTestDataSources.SavedSellers[seriesModel.SellerEmail].Id
             },
-            Name = seriesModel.Name,
-            NextNumber = seriesModel.NextNumber
+            Name = seriesModel.Name
         };
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Add(addRequest)))!.Error!;
