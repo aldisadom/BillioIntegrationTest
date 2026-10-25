@@ -5,8 +5,6 @@ VisualStudioVersion = 17.12.35309.182
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTests", "src\IntegrationTests\IntegrationTests.csproj", "{77DD2A3E-41A7-4A2C-BA7C-9EB6B8D8FEE0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "docs", "docs\docs.csproj", "{19BA5607-FDDF-4745-B3BB-FBB0121E5180}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,8 +15,6 @@ Global
 		{77DD2A3E-41A7-4A2C-BA7C-9EB6B8D8FEE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{77DD2A3E-41A7-4A2C-BA7C-9EB6B8D8FEE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{77DD2A3E-41A7-4A2C-BA7C-9EB6B8D8FEE0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{19BA5607-FDDF-4745-B3BB-FBB0121E5180}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{19BA5607-FDDF-4745-B3BB-FBB0121E5180}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
