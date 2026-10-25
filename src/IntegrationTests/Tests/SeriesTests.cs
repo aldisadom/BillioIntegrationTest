@@ -337,7 +337,7 @@ public partial class Tests
     {
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { Page = 0 })))!.Error!;
 
-        ErrorModel expectedError = new("Validation failure", "Please specify page >= 1", HttpStatusCode.BadRequest);
+        ErrorModel expectedError = new("Validation failure", $"Please specify page from 1 to {int.MaxValue / 50}", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
     }
 
