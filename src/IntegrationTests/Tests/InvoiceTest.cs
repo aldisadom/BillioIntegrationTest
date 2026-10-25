@@ -6,12 +6,14 @@ using BillerContracts.Requests.Customer;
 using BillerContracts.Requests.Invoice;
 using BillerContracts.Requests.Item;
 using BillerContracts.Requests.Seller;
+using BillerContracts.Requests.Series;
 using BillerContracts.Requests.User;
 using BillerContracts.Responses;
 using BillerContracts.Responses.Customer;
 using BillerContracts.Responses.Invoice;
 using BillerContracts.Responses.Item;
 using BillerContracts.Responses.Seller;
+using BillerContracts.Responses.Series;
 using BillerContracts.Responses.User;
 using IntegrationTests.ApiClients;
 using IntegrationTests.Models;
@@ -539,8 +541,7 @@ public static class InvoiceTestDataSources
                 BucketKey = InvoiceKeys().First(),
                 Comments = "Updated invoice com",
                 DueDate = new DateOnly(2026, 1, 1).AddDays(33),
-                CreatedDate = new DateOnly(2024, 1, 1),
-                InvoiceNumber = 99
+                CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
         yield return new()
@@ -550,8 +551,7 @@ public static class InvoiceTestDataSources
             {
                 BucketKey = InvoiceKeys().ToArray()[1],
                 DueDate = new DateOnly(2027, 1, 1).AddDays(33),
-                CreatedDate = new DateOnly(2027, 1, 1),
-                InvoiceNumber = 699
+                CreatedDate = new DateOnly(2027, 1, 1)
             }
         };
     }
@@ -569,8 +569,7 @@ public static class InvoiceTestDataSources
             Data = new()
             {
                 BucketKey = InvoiceKeys().First(),
-                CreatedDate = new DateOnly(2027, 1, 1),
-                InvoiceNumber = 699
+                CreatedDate = new DateOnly(2027, 1, 1)
             }
         };
         yield return new()
@@ -585,24 +584,7 @@ public static class InvoiceTestDataSources
             Data = new()
             {
                 BucketKey = InvoiceKeys().First(),
-                DueDate = new DateOnly(2027, 1, 1).AddDays(33),
-                InvoiceNumber = 699
-            }
-        };
-        yield return new()
-        {
-            TestName = "No invoice number",
-            Error = new ErrorModel()
-            {
-                StatusCode = HttpStatusCode.BadRequest,
-                Message = "Validation failure",
-                ExtendedMessage = "Please specify invoice number >= 0"
-            },
-            Data = new()
-            {
-                BucketKey = InvoiceKeys().First(),
-                DueDate = new DateOnly(2027, 1, 1).AddDays(33),
-                CreatedDate = new DateOnly(2027, 1, 1)
+                DueDate = new DateOnly(2027, 1, 1).AddDays(33)
             }
         };
     }
@@ -674,8 +656,7 @@ public partial class Tests
             City = invoice.Customer!.City,
             State = invoice.Customer!.State,
             Phone = invoice.Customer!.Phone,
-            InvoiceName = invoice.Customer!.InvoiceName,
-            InvoiceNumber = invoice.Customer!.InvoiceNumber
+            SeriesId = invoice.Customer!.SeriesId
         };
         List<InvoiceItemUpdateRequest> items = invoice.Items!.Select(i => new InvoiceItemUpdateRequest()
         {
@@ -745,6 +726,8 @@ public partial class Tests
     {
         await Assert.That(actual.Id).IsEqualTo(expected.Id);
         await Assert.That(actual.UserId).IsEqualTo(expected.UserId);
+        await Assert.That(actual.SeriesId).IsEqualTo(expected.SeriesId);
+        await Assert.That(actual.SeriesName).IsEqualTo(expected.SeriesName);
         await Assert.That(actual.InvoiceNumber).IsEqualTo(expected.InvoiceNumber);
         await Assert.That(actual.CreatedDate).IsEqualTo(expected.CreatedDate);
         await Assert.That(actual.DueDate).IsEqualTo(expected.DueDate);
@@ -773,8 +756,8 @@ public partial class Tests
         await Assert.That(actual.Customer!.City).IsEqualTo(expected.Customer!.City);
         await Assert.That(actual.Customer!.State).IsEqualTo(expected.Customer!.State);
         await Assert.That(actual.Customer!.Phone).IsEqualTo(expected.Customer!.Phone);
-        await Assert.That(actual.Customer!.InvoiceName).IsEqualTo(expected.Customer!.InvoiceName);
-        await Assert.That(actual.Customer!.InvoiceNumber).IsEqualTo(expected.Customer!.InvoiceNumber);
+        await Assert.That(actual.Customer!.SeriesId).IsEqualTo(expected.Customer!.SeriesId);
+        await Assert.That(actual.Customer!.SeriesName).IsEqualTo(expected.Customer!.SeriesName);
 
         await Assert.That(actual.Items)
             .IsNotNull()
@@ -837,6 +820,14 @@ public partial class Tests
 
                 foreach (var customerName in InvoiceTestDataSources.CustomerNames())
                 {
+                    SeriesAddRequest series = new()
+                    {
+                        SellerId = sellerAdd.Id,
+                        Name = string.Concat(userEmail.AsSpan(0, 1), sellerName.AsSpan(0, 1), customerName.AsSpan(0, 1))
+                    };
+
+                    AddResponse seriesAdd = await _seriesClient.Add(series);
+
                     CustomerAddRequest customer = new()
                     {
                         SellerId = sellerAdd.Id,
@@ -847,7 +838,7 @@ public partial class Tests
                         City = "CUS_City",
                         State = "CUS_State",
                         Phone = "CUS_Phone",
-                        InvoiceName = string.Concat(userEmail.AsSpan(0, 1), sellerName.AsSpan(0, 1), customerName.AsSpan(0, 1))
+                        SeriesId = seriesAdd.Id
                     };
 
                     AddResponse customerAdd = await _customerClient.Add(customer);
@@ -929,7 +920,9 @@ public partial class Tests
         await Assert.That(getResponse!.DueDate).IsEqualTo(addRequest.DueDate);
         await Assert.That(getResponse!.UserId).IsEqualTo(addRequest.UserId);
         await Assert.That(getResponse!.Comments).IsEqualTo(addRequest.Comments);
-        await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(customer.InvoiceNumber);
+        await Assert.That(getResponse!.SeriesId).IsEqualTo(customer.SeriesId);
+        await Assert.That(getResponse!.SeriesName).IsEqualTo(customer.SeriesName);
+        await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(1);
         await Assert.That(getResponse!.Status).IsEqualTo(InvoiceStatus.Created);
 
         await Assert.That(getResponse.Seller).IsNotNull();
@@ -952,8 +945,8 @@ public partial class Tests
         await Assert.That(getResponse.Customer!.City).IsEqualTo(customer.City);
         await Assert.That(getResponse.Customer!.State).IsEqualTo(customer.State);
         await Assert.That(getResponse.Customer!.Phone).IsEqualTo(customer.Phone);
-        await Assert.That(getResponse.Customer!.InvoiceNumber).IsEquivalentTo(customer.InvoiceNumber);
-        await Assert.That(getResponse.Customer!.InvoiceName).IsEqualTo(customer.InvoiceName);
+        await Assert.That(getResponse.Customer!.SeriesId).IsEqualTo(customer.SeriesId);
+        await Assert.That(getResponse.Customer!.SeriesName).IsEqualTo(customer.SeriesName);
 
         await Assert.That(getResponse.Items)
             .IsNotNull()
@@ -1119,7 +1112,6 @@ public partial class Tests
             Comments = invoiceModel.Comments,
             DueDate = invoiceModel.DueDate,
             CreatedDate = invoiceModel.CreatedDate,
-            InvoiceNumber = invoiceModel.InvoiceNumber,
             Seller = seller,
             Customer = customer,
             Items = items,
@@ -1134,7 +1126,9 @@ public partial class Tests
         await Assert.That(getResponse!.CreatedDate).IsEqualTo(updateRequest.CreatedDate);
         await Assert.That(getResponse!.DueDate).IsEqualTo(updateRequest.DueDate);
         await Assert.That(getResponse!.Comments).IsEqualTo(updateRequest.Comments);
-        await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(updateRequest.InvoiceNumber);
+        await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(invoiceFromBucket.InvoiceNumber);
+        await Assert.That(getResponse!.SeriesId).IsEqualTo(invoiceFromBucket.SeriesId);
+        await Assert.That(getResponse!.SeriesName).IsEqualTo(invoiceFromBucket.SeriesName);
     }
 
     [Test]
@@ -1155,7 +1149,6 @@ public partial class Tests
             Comments = invoiceModel.Comments,
             DueDate = invoiceModel.DueDate,
             CreatedDate = invoiceModel.CreatedDate,
-            InvoiceNumber = invoiceModel.InvoiceNumber,
             Seller = seller,
             Customer = customer,
             Items = items,
@@ -1181,7 +1174,6 @@ public partial class Tests
             Comments = invoiceFromBucket.Comments,
             DueDate = invoiceFromBucket.DueDate,
             CreatedDate = invoiceFromBucket.CreatedDate,
-            InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = new SellerUpdateRequest()
             {
                 Id = seller.Id,
@@ -1248,7 +1240,6 @@ public partial class Tests
             Comments = invoiceFromBucket.Comments,
             DueDate = invoiceFromBucket.DueDate,
             CreatedDate = invoiceFromBucket.CreatedDate,
-            InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = sellerUpdate,
             Customer = customer,
             Items = items,
@@ -1277,7 +1268,6 @@ public partial class Tests
             Comments = invoiceFromBucket.Comments,
             DueDate = invoiceFromBucket.DueDate,
             CreatedDate = invoiceFromBucket.CreatedDate,
-            InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = seller,
             Customer = new()
             {
@@ -1289,8 +1279,7 @@ public partial class Tests
                 City = customer.City + "_new",
                 State = customer.State + "_new",
                 Phone = customer.Phone + "_new",
-                InvoiceName = customer.InvoiceName + "_new",
-                InvoiceNumber = customer.InvoiceNumber + 99
+                SeriesId = Guid.NewGuid()
             },
             Items = items,
         };
@@ -1308,8 +1297,10 @@ public partial class Tests
         await Assert.That(getResponse.Customer!.City).IsEqualTo(updateRequest.Customer.City);
         await Assert.That(getResponse.Customer!.State).IsEqualTo(updateRequest.Customer.State);
         await Assert.That(getResponse.Customer!.Phone).IsEqualTo(updateRequest.Customer.Phone);
-        await Assert.That(getResponse.Customer!.InvoiceName).IsEqualTo(updateRequest.Customer.InvoiceName);
-        await Assert.That(getResponse.Customer!.InvoiceNumber).IsEqualTo(updateRequest.Customer.InvoiceNumber);
+        await Assert.That(getResponse.Customer!.SeriesId).IsEqualTo(invoiceFromBucket.SeriesId);
+        await Assert.That(getResponse.Customer!.SeriesName).IsEqualTo(invoiceFromBucket.SeriesName);
+        await Assert.That(getResponse.SeriesId).IsEqualTo(invoiceFromBucket.SeriesId);
+        await Assert.That(getResponse.InvoiceNumber).IsEqualTo(invoiceFromBucket.InvoiceNumber);
     }
 
     [Test]
@@ -1334,8 +1325,7 @@ public partial class Tests
             City = customerModel.City,
             State = customerModel.State,
             Phone = customerModel.Phone,
-            InvoiceName = customerModel.InvoiceName,
-            InvoiceNumber = customerModel.InvoiceNumber
+            SeriesId = SeriesIdByName(customerModel.SeriesName)
         };
 
         InvoiceUpdateRequest updateRequest = new()
@@ -1344,7 +1334,6 @@ public partial class Tests
             Comments = invoiceFromBucket.Comments,
             DueDate = invoiceFromBucket.DueDate,
             CreatedDate = invoiceFromBucket.CreatedDate,
-            InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = seller,
             Customer = customerUpdate,
             Items = items,
@@ -1381,7 +1370,6 @@ public partial class Tests
             Comments = invoiceFromBucket.Comments,
             DueDate = invoiceFromBucket.DueDate,
             CreatedDate = invoiceFromBucket.CreatedDate,
-            InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = seller,
             Customer = customer,
             Items = updatedItems,
@@ -1442,7 +1430,6 @@ public partial class Tests
             Comments = invoiceFromBucket.Comments,
             DueDate = invoiceFromBucket.DueDate,
             CreatedDate = invoiceFromBucket.CreatedDate,
-            InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = seller,
             Customer = customer,
             Items = updatedItems,
@@ -1575,7 +1562,6 @@ public partial class Tests
             Comments = invoiceFromBucket.Comments,
             DueDate = invoiceFromBucket.DueDate,
             CreatedDate = invoiceFromBucket.CreatedDate,
-            InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = seller,
             Customer = customer,
             Items = updatedItems,
@@ -1630,8 +1616,7 @@ public partial class Tests
             City = customerNew.City,
             State = customerNew.State,
             Phone = customerNew.Phone,
-            InvoiceName = customerNew.InvoiceName,
-            InvoiceNumber = customerNew.InvoiceNumber
+            SeriesId = customerNew.SeriesId
         };
 
         InvoiceUpdateRequest updateRequest = new()
@@ -1640,7 +1625,6 @@ public partial class Tests
             Comments = invoiceFromBucket.Comments,
             DueDate = invoiceFromBucket.DueDate,
             CreatedDate = invoiceFromBucket.CreatedDate,
-            InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = seller,
             Customer = updatedCustomer,
             Items = updatedItems,
@@ -1698,8 +1682,7 @@ public partial class Tests
             City = customerNew.City,
             State = customerNew.State,
             Phone = customerNew.Phone,
-            InvoiceName = customerNew.InvoiceName,
-            InvoiceNumber = customerNew.InvoiceNumber
+            SeriesId = customerNew.SeriesId
         };
 
         SellerUpdateRequest updatedSeller = new()
@@ -1722,7 +1705,6 @@ public partial class Tests
             Comments = invoiceFromBucket.Comments,
             DueDate = invoiceFromBucket.DueDate,
             CreatedDate = invoiceFromBucket.CreatedDate,
-            InvoiceNumber = invoiceFromBucket.InvoiceNumber,
             Seller = updatedSeller,
             Customer = updatedCustomer,
             Items = updatedItems,
@@ -1783,7 +1765,6 @@ public partial class Tests
             Comments = "Editing keeps the status",
             DueDate = added.DueDate,
             CreatedDate = added.CreatedDate,
-            InvoiceNumber = added.InvoiceNumber,
             Seller = seller,
             Customer = customer,
             Items = items,
@@ -1843,5 +1824,122 @@ public partial class Tests
 
         ErrorModel expectedError = new("Entity not found", $"Invoice:{statusRequest.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
+    }
+
+    private static async Task<InvoiceResponse> AddNumberingInvoice(Guid userId, Guid sellerId, Guid customerId, Guid itemId)
+    {
+        InvoiceAddRequest addRequest = new()
+        {
+            UserId = userId,
+            SellerId = sellerId,
+            CustomerId = customerId,
+            Items = [new() { Id = itemId, Quantity = 1 }],
+            DueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(6)),
+            CreatedDate = DateOnly.FromDateTime(DateTime.Now),
+            Comments = "Numbering"
+        };
+
+        AddResponse addResponse = await _invoiceClient.Add(addRequest);
+
+        return await GetInvoice(addResponse.Id);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
+    public async Task InvoiceNumbering_SeriesRules_Success()
+    {
+        AddResponse user = await _userClient.Add(new UserAddRequest
+        {
+            Email = "numbering@citadel.com",
+            Name = "Maester",
+            LastName = "Aemon",
+            Password = "StrongPassword"
+        });
+        AddResponse seller = await _sellerClient.Add(new SellerAddRequest
+        {
+            UserId = user.Id,
+            Email = "ravens@citadel.com",
+            CompanyName = "Citadel",
+            CompanyNumber = "CIT-1",
+            Street = "Archmaester road 1",
+            City = "Oldtown",
+            State = "The Reach",
+            Phone = "+100000001",
+            BankName = "Iron bank",
+            BankNumber = "IB-1"
+        });
+        AddResponse series = await _seriesClient.Add(new SeriesAddRequest { SellerId = seller.Id, Name = "NUM" });
+        AddResponse customer = await _customerClient.Add(new CustomerAddRequest
+        {
+            SellerId = seller.Id,
+            SeriesId = series.Id,
+            Email = "novice@citadel.com",
+            CompanyName = "Novices",
+            CompanyNumber = "NOV-1",
+            Street = "Library 2",
+            City = "Oldtown",
+            State = "The Reach",
+            Phone = "+100000002"
+        });
+        AddResponse item = await _itemClient.Add(new ItemAddRequest { CustomerId = customer.Id, Name = "Chain link", Quantity = 9999, Price = 5 });
+
+        // Invoices 1, 2, 3 in a new series.
+        List<InvoiceResponse> invoices = [];
+        for (int i = 1; i <= 3; i++)
+        {
+            InvoiceResponse invoice = await AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id);
+            await Assert.That(invoice.InvoiceNumber).IsEqualTo(i);
+            await Assert.That(invoice.SeriesId).IsEqualTo(series.Id);
+            await Assert.That(invoice.SeriesName).IsEqualTo("NUM");
+            invoices.Add(invoice);
+        }
+        await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(4);
+
+        // Deleting the latest invoice gives its number back.
+        await _invoiceClient.Delete(invoices[2].Id);
+        await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(3);
+
+        InvoiceResponse again = await AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id);
+        await Assert.That(again.InvoiceNumber).IsEqualTo(3);
+
+        // Deleting an invoice that isn't the latest leaves a gap.
+        await _invoiceClient.Delete(invoices[1].Id);
+        await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(4);
+
+        // The next number can't go back to or below an existing invoice number.
+        SeriesUpdateRequest lowerNumber = new() { Id = series.Id, Name = "NUM", NextNumber = 3 };
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Update(lowerNumber)))!.Error!;
+        ErrorModel expectedError = new("Validation failure", "Next number must be greater than 3, the highest invoice number in series NUM", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+
+        // Renaming the series changes only new invoices.
+        await _seriesClient.Update(new SeriesUpdateRequest { Id = series.Id, Name = "NUM2", NextNumber = 4 });
+
+        InvoiceResponse oldInvoice = await GetInvoice(invoices[0].Id);
+        await Assert.That(oldInvoice.SeriesName).IsEqualTo("NUM");
+        await Assert.That(oldInvoice.InvoiceNumber).IsEqualTo(1);
+
+        InvoiceResponse renamed = await AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id);
+        await Assert.That(renamed.SeriesName).IsEqualTo("NUM2");
+        await Assert.That(renamed.InvoiceNumber).IsEqualTo(4);
+
+        // A series with invoices can't be deleted.
+        error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Delete(series.Id)))!.Error!;
+        expectedError = new("Validation failure", $"Series id {series.Id} is used by customers or invoices", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+
+        // Invoices created at the same time get different, consecutive numbers.
+        InvoiceResponse[] parallel = await Task.WhenAll(Enumerable.Range(0, 10)
+            .Select(_ => AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id)));
+        await Assert.That(parallel.Select(i => i.InvoiceNumber).OrderBy(n => n).ToList())
+            .IsEquivalentTo(Enumerable.Range(5, 10).ToList());
+        await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(15);
+
+        List<Guid> created = [invoices[0].Id, again.Id, renamed.Id, .. parallel.Select(i => i.Id)];
+        foreach (Guid id in created)
+            await _invoiceClient.Delete(id);
     }
 }

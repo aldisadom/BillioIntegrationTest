@@ -27,7 +27,6 @@ public record InvoiceDetaisUpdateTestModel
     public string? Comments { get; set; }
     public DateOnly DueDate { get; set; }
     public DateOnly CreatedDate { get; set; }
-    public int InvoiceNumber { get; set; }
 }
 
 public record InvoiceStatusChangeTestModel

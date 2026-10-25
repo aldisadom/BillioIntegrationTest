@@ -8,6 +8,7 @@ public class TestPreparation
         await Tests.Invoice_Delete_All();
         await Tests.Item_Delete_All();
         await Tests.Customer_Delete_All();
+        await Tests.Series_Delete_All();
         await Tests.Seller_Delete_All();
         await Tests.User_Delete_All();
     }

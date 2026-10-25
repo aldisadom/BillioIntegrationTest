@@ -18,6 +18,7 @@ public static class TestClients
     public static ICustomerClient Customer => _provider.GetRequiredService<ICustomerClient>();
     public static IItemClient Item => _provider.GetRequiredService<IItemClient>();
     public static IInvoiceClient Invoice => _provider.GetRequiredService<IInvoiceClient>();
+    public static ISeriesClient Series => _provider.GetRequiredService<ISeriesClient>();
 
     private static ServiceProvider Build()
     {
