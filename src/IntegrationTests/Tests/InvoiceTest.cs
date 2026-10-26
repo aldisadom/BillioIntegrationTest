@@ -1247,8 +1247,9 @@ public partial class Tests
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
 
+        // Any other seller id is rejected before the seller is looked up: an invoice keeps its seller.
         if (sellerModel.Id != default)
-            testCase.Error = new("Validation failure", $"Seller id {updateRequest.Seller.Id} is invalid for user id {invoiceFromBucket.UserId}", HttpStatusCode.BadRequest);
+            testCase.Error = new("Validation failure", $"Invoice id {updateRequest.Id} can't be moved to another seller", HttpStatusCode.BadRequest);
 
         await testCase.CheckErrors(error);
     }
@@ -1645,11 +1646,9 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(InvoiceUpdateChangeCustomer_Valid_Success))]
-    public async Task InvoiceUpdateChangeSeller_Valid_Success()
+    public async Task InvoiceUpdateChangeSeller_Invalid_Fail()
     {
         var invoiceFromBucket = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().First());
-
-        (SellerUpdateRequest seller, CustomerUpdateRequest customer, List<InvoiceItemUpdateRequest> items) = ExtractUpdateFromInvoice(invoiceFromBucket);
 
         InvoiceResponse getResponse = await _invoiceClient.Get(invoiceFromBucket.Id);
 
@@ -1710,18 +1709,20 @@ public partial class Tests
             Items = updatedItems,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        // A series belongs to one seller, and the invoice keeps its series and number.
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
+        ErrorModel expectedError = new("Validation failure", $"Invoice id {updateRequest.Id} can't be moved to another seller", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
 
-        getResponse = await _invoiceClient.Get(updateRequest.Id);
+        InvoiceResponse afterResponse = await _invoiceClient.Get(updateRequest.Id);
 
-        await Assert.That(getResponse).IsNotNull();
-        await Assert.That(getResponse!.Seller!.Id).IsEquivalentTo(sellerNew.Id);
-        await Assert.That(getResponse!.Customer!.Id).IsEquivalentTo(customerNew.Id);
-        await Assert.That(getResponse!.Items)
-            .IsNotNull()
-            .And.HasCount().EqualTo(1);
-
-        await Assert.That(getResponse!.Items![0].Id).IsEquivalentTo(itemNew.Id);
+        await Assert.That(afterResponse).IsNotNull();
+        await Assert.That(afterResponse!.Seller!.Id).IsEquivalentTo(sellerFromTest.Id);
+        await Assert.That(afterResponse!.Customer!.Id).IsEquivalentTo(getResponse!.Customer!.Id);
+        await Assert.That(afterResponse!.Items!.Select(i => i.Id).ToList())
+            .IsEquivalentTo(getResponse!.Items!.Select(i => i.Id).ToList());
+        await Assert.That(afterResponse!.SeriesId).IsEquivalentTo(getResponse!.SeriesId);
+        await Assert.That(afterResponse!.InvoiceNumber).IsEqualTo(getResponse!.InvoiceNumber);
     }
 
     public static async Task Invoice_Delete_All()
@@ -1915,16 +1916,19 @@ public partial class Tests
         ErrorModel expectedError = new("Validation failure", "Next number must be greater than 3, the highest invoice number in series NUM", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
 
-        // Renaming the series changes only new invoices.
-        await _seriesClient.Update(new SeriesUpdateRequest { Id = series.Id, Name = "NUM2", NextNumber = 4 });
+        // A series with invoices can't be renamed, so its invoices keep their series name.
+        SeriesUpdateRequest rename = new() { Id = series.Id, Name = "NUM2", NextNumber = 4 };
+        error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Update(rename)))!.Error!;
+        expectedError = new("Validation failure", "Series NUM has invoices, so its name can't be changed", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
 
         InvoiceResponse oldInvoice = await GetInvoice(invoices[0].Id);
         await Assert.That(oldInvoice.SeriesName).IsEqualTo("NUM");
         await Assert.That(oldInvoice.InvoiceNumber).IsEqualTo(1);
 
-        InvoiceResponse renamed = await AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id);
-        await Assert.That(renamed.SeriesName).IsEqualTo("NUM2");
-        await Assert.That(renamed.InvoiceNumber).IsEqualTo(4);
+        InvoiceResponse afterRename = await AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id);
+        await Assert.That(afterRename.SeriesName).IsEqualTo("NUM");
+        await Assert.That(afterRename.InvoiceNumber).IsEqualTo(4);
 
         // A series with invoices can't be deleted.
         error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Delete(series.Id)))!.Error!;
@@ -1938,7 +1942,7 @@ public partial class Tests
             .IsEquivalentTo(Enumerable.Range(5, 10).ToList());
         await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(15);
 
-        List<Guid> created = [invoices[0].Id, again.Id, renamed.Id, .. parallel.Select(i => i.Id)];
+        List<Guid> created = [invoices[0].Id, again.Id, afterRename.Id, .. parallel.Select(i => i.Id)];
         foreach (Guid id in created)
             await _invoiceClient.Delete(id);
     }
