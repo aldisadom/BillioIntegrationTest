@@ -118,6 +118,12 @@ public static class SeriesTestDataSources
         };
         yield return new()
         {
+            TestName = "Next number int.MaxValue",
+            Error = new("Validation failure", "Please specify next number that must be < 2147483647", HttpStatusCode.BadRequest),
+            Data = new() { Name = "LX", NextNumber = int.MaxValue }
+        };
+        yield return new()
+        {
             TestName = "Name used by another series of the seller",
             Error = new("Validation failure", "Change me", HttpStatusCode.BadRequest),
             Data = new() { Name = "LL", NextNumber = 1 }

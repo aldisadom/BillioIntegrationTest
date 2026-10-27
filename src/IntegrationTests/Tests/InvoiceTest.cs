@@ -1342,8 +1342,9 @@ public partial class Tests
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
 
+        // A valid customer copy with another id is another customer, and the invoice keeps its customer.
         if (customerModel.Id != default)
-            testCase.Error = new("Validation failure", $"Customer id {updateRequest.Customer.Id} is invalid for seller id {seller.Id}", HttpStatusCode.BadRequest);
+            testCase.Error = new("Validation failure", $"Invoice id {updateRequest.Id} can't be moved to another customer", HttpStatusCode.BadRequest);
 
         await testCase.CheckErrors(error);
     }
@@ -1582,7 +1583,7 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(InvoiceUpdateChangeItems_Valid_Success))]
-    public async Task InvoiceUpdateChangeCustomer_Valid_Success()
+    public async Task InvoiceUpdateChangeCustomer_Invalid_Fail()
     {
         var invoiceFromBucket = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().First());
 
@@ -1631,21 +1632,23 @@ public partial class Tests
             Items = updatedItems,
         };
 
-        await _invoiceClient.Update(updateRequest);
+        // The invoice keeps its customer.
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
+        ErrorModel expectedError = new("Validation failure", $"Invoice id {updateRequest.Id} can't be moved to another customer", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
 
-        getResponse = await _invoiceClient.Get(updateRequest.Id);
+        InvoiceResponse afterResponse = await _invoiceClient.Get(updateRequest.Id);
 
-        await Assert.That(getResponse).IsNotNull();
-        await Assert.That(getResponse!.Customer!.Id).IsEquivalentTo(customerNew.Id);
-        await Assert.That(getResponse!.Items)
-            .IsNotNull()
-            .And.HasCount().EqualTo(1);
-
-        await Assert.That(getResponse!.Items![0].Id).IsEquivalentTo(itemNew.Id);
+        await Assert.That(afterResponse).IsNotNull();
+        await Assert.That(afterResponse!.Customer!.Id).IsEquivalentTo(customerFromTest.Id);
+        await Assert.That(afterResponse!.Items!.Select(i => i.Id).ToList())
+            .IsEquivalentTo(getResponse!.Items!.Select(i => i.Id).ToList());
+        await Assert.That(afterResponse!.SeriesId).IsEquivalentTo(getResponse!.SeriesId);
+        await Assert.That(afterResponse!.InvoiceNumber).IsEqualTo(getResponse!.InvoiceNumber);
     }
 
     [Test]
-    [DependsOn(nameof(InvoiceUpdateChangeCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceUpdateChangeCustomer_Invalid_Fail))]
     public async Task InvoiceUpdateChangeSeller_Invalid_Fail()
     {
         var invoiceFromBucket = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().First());
@@ -1723,6 +1726,73 @@ public partial class Tests
             .IsEquivalentTo(getResponse!.Items!.Select(i => i.Id).ToList());
         await Assert.That(afterResponse!.SeriesId).IsEquivalentTo(getResponse!.SeriesId);
         await Assert.That(afterResponse!.InvoiceNumber).IsEqualTo(getResponse!.InvoiceNumber);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceAdd_Valid_Success))]
+    public async Task CustomerWithInvoicesUpdate_SameSeries_Success()
+    {
+        CustomerResponse customer = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller0_Customer0];
+
+        CustomerUpdateRequest updateRequest = new()
+        {
+            Id = customer.Id,
+            Email = customer.Email,
+            CompanyName = customer.CompanyName,
+            CompanyNumber = customer.CompanyNumber,
+            Street = customer.Street,
+            City = customer.City,
+            State = customer.State,
+            Phone = customer.Phone,
+            SeriesId = customer.SeriesId
+        };
+
+        await _customerClient.Update(updateRequest);
+
+        CustomerResponse getResponse = await _customerClient.Get(updateRequest.Id);
+
+        await Assert.That(getResponse).IsNotNull();
+        await Assert.That(getResponse!.Id).IsEqualTo(updateRequest.Id);
+        await Assert.That(getResponse!.SellerId).IsEqualTo(customer.SellerId);
+        await Assert.That(getResponse!.Email).IsEqualTo(updateRequest.Email);
+        await Assert.That(getResponse!.CompanyName).IsEqualTo(updateRequest.CompanyName);
+        await Assert.That(getResponse!.CompanyNumber).IsEqualTo(updateRequest.CompanyNumber);
+        await Assert.That(getResponse!.Street).IsEqualTo(updateRequest.Street);
+        await Assert.That(getResponse!.City).IsEqualTo(updateRequest.City);
+        await Assert.That(getResponse!.State).IsEqualTo(updateRequest.State);
+        await Assert.That(getResponse!.Phone).IsEqualTo(updateRequest.Phone);
+        await Assert.That(getResponse!.SeriesId).IsEqualTo(updateRequest.SeriesId);
+        await Assert.That(getResponse!.SeriesName).IsEqualTo(customer.SeriesName);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceAdd_Valid_Success))]
+    public async Task CustomerWithInvoicesUpdate_OtherSeries_Fail()
+    {
+        CustomerResponse customer = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller0_Customer0];
+        CustomerResponse otherCustomerOfSeller = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller0_Customer1];
+
+        CustomerUpdateRequest updateRequest = new()
+        {
+            Id = customer.Id,
+            Email = customer.Email,
+            CompanyName = customer.CompanyName,
+            CompanyNumber = customer.CompanyNumber,
+            Street = customer.Street,
+            City = customer.City,
+            State = customer.State,
+            Phone = customer.Phone,
+            SeriesId = otherCustomerOfSeller.SeriesId
+        };
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Update(updateRequest)))!.Error!;
+        ErrorModel expectedError = new("Validation failure", $"Customer id {customer.Id} has invoices, so its series can't be changed", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+
+        CustomerResponse getResponse = await _customerClient.Get(customer.Id);
+
+        await Assert.That(getResponse!.SeriesId).IsEqualTo(customer.SeriesId);
+        await Assert.That(getResponse!.SeriesName).IsEqualTo(customer.SeriesName);
     }
 
     public static async Task Invoice_Delete_All()
