@@ -454,6 +454,17 @@ public partial class Tests
 {
     private static readonly ICustomerClient _customerClient = TestClients.Customer;
 
+    private static string SeriesNameAfterUpdate(CustomerModel customer) => customer.SeriesName == "LL" ? "LX" : "FX";
+
+    private static async Task AssertListedCustomerSeries(CustomerResponse listed)
+    {
+        CustomerModel saved = CustomerTestDataSources.SavedCustomers.Values.Single(c => c.Id == listed.Id);
+        string expectedSeries = SeriesNameAfterUpdate(saved);
+
+        await Assert.That(listed.SeriesId).IsEqualTo(SeriesIdByName(expectedSeries));
+        await Assert.That(listed.SeriesName).IsEqualTo(expectedSeries);
+    }
+
     private static Guid SeriesIdByName(string seriesName)
     {
         return string.IsNullOrEmpty(seriesName) ? Guid.Empty : SeriesTestDataSources.SavedSeries[seriesName].Id;
@@ -610,6 +621,7 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(CustomerDelete_Valid_Success))]
+    [DependsOn(nameof(CustomerUpdate_Valid_Success), [typeof(string)])]
     public async Task CustomerGetAll_Valid_Success()
     {
         CustomerListResponse listResponse = await _customerClient.Get();
@@ -617,10 +629,14 @@ public partial class Tests
         await Assert.That(listResponse.Customers)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+
+        foreach (var customer in listResponse.Customers)
+            await AssertListedCustomerSeries(customer);
     }
 
     [Test]
     [DependsOn(nameof(CustomerDelete_Valid_Success))]
+    [DependsOn(nameof(CustomerUpdate_Valid_Success), [typeof(string)])]
     public async Task CustomerGetAllForSeller_Valid_Success()
     {
         var request = new CustomerGetRequest()
@@ -635,6 +651,7 @@ public partial class Tests
             .And.HasCount().EqualTo(1);
 
         await Assert.That(listResponse.Customers[0].SellerId).IsEquivalentTo(request.SellerId!.Value);
+        await AssertListedCustomerSeries(listResponse.Customers[0]);
     }
 
     [Test]
@@ -655,7 +672,7 @@ public partial class Tests
             City = customerModel.City + "_new",
             State = customerModel.State + "_new",
             Phone = customerModel.Phone + "_new",
-            SeriesId = SeriesIdByName(customerModel.SeriesName == "LL" ? "LX" : "FX")
+            SeriesId = SeriesIdByName(SeriesNameAfterUpdate(customerModel))
         };
 
         await _customerClient.Update(updateRequest);
@@ -671,7 +688,7 @@ public partial class Tests
         await Assert.That(getResponse!.State).IsEqualTo(updateRequest.State);
         await Assert.That(getResponse!.Phone).IsEqualTo(updateRequest.Phone);
         await Assert.That(getResponse!.SeriesId).IsEqualTo(updateRequest.SeriesId);
-        await Assert.That(getResponse!.SeriesName).IsEqualTo(customerModel.SeriesName == "LL" ? "LX" : "FX");
+        await Assert.That(getResponse!.SeriesName).IsEqualTo(SeriesNameAfterUpdate(customerModel));
     }
 
     [Test]

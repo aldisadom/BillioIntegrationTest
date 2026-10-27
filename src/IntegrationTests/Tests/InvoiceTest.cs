@@ -721,6 +721,15 @@ public partial class Tests
         await _invoiceClient.UpdateStatus(statusRequest);
     }
 
+    private static async Task AssertListedInvoiceSeries(InvoiceResponse listed)
+    {
+        InvoiceResponse saved = InvoiceTestDataSources.SavedInvoices.Values.Single(i => i.Id == listed.Id);
+
+        await Assert.That(listed.SeriesId).IsEqualTo(saved.SeriesId);
+        await Assert.That(listed.SeriesName).IsEqualTo(saved.SeriesName);
+        await Assert.That(listed.InvoiceNumber).IsEqualTo(saved.InvoiceNumber);
+    }
+
     // Asserts every field except Status and Comments, which the caller checks.
     private static async Task AssertInvoiceDataUnchanged(InvoiceResponse actual, InvoiceResponse expected)
     {
@@ -775,6 +784,8 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(ItemGetAll_Valid_Success))]
+    [DependsOn(nameof(CustomerGetAll_Valid_Success))]
+    [DependsOn(nameof(CustomerGetAllForSeller_Valid_Success))]
     public async Task Invoice_BeforeTests_DBEmpty()
     {
         InvoiceListResponse response = await _invoiceClient.Get();
@@ -1487,6 +1498,7 @@ public partial class Tests
             .And.HasCount().EqualTo(1);
 
         await Assert.That(listResponse.Invoices[0].Customer!.Id).IsEquivalentTo(request.CustomerId!.Value);
+        await AssertListedInvoiceSeries(listResponse.Invoices[0]);
     }
 
     [Test]
@@ -1506,7 +1518,10 @@ public partial class Tests
             .And.HasCount().EqualTo(2);
 
         foreach (var invoice in listResponse.Invoices)
+        {
             await Assert.That(invoice.Seller!.Id).IsEquivalentTo(request.SellerId!.Value);
+            await AssertListedInvoiceSeries(invoice);
+        }
     }
 
     [Test]
@@ -1526,7 +1541,10 @@ public partial class Tests
             .And.HasCount().EqualTo(2);
 
         foreach (var invoice in listResponse.Invoices)
+        {
             await Assert.That(invoice.UserId).IsEquivalentTo(request.UserId!.Value);
+            await AssertListedInvoiceSeries(invoice);
+        }
     }
 
     [Test]
@@ -1640,11 +1658,8 @@ public partial class Tests
         InvoiceResponse afterResponse = await _invoiceClient.Get(updateRequest.Id);
 
         await Assert.That(afterResponse).IsNotNull();
-        await Assert.That(afterResponse!.Customer!.Id).IsEquivalentTo(customerFromTest.Id);
-        await Assert.That(afterResponse!.Items!.Select(i => i.Id).ToList())
-            .IsEquivalentTo(getResponse!.Items!.Select(i => i.Id).ToList());
-        await Assert.That(afterResponse!.SeriesId).IsEquivalentTo(getResponse!.SeriesId);
-        await Assert.That(afterResponse!.InvoiceNumber).IsEqualTo(getResponse!.InvoiceNumber);
+        await AssertInvoiceDataUnchanged(afterResponse, getResponse);
+        await Assert.That(afterResponse.Comments).IsEqualTo(getResponse.Comments);
     }
 
     [Test]
@@ -1720,49 +1735,8 @@ public partial class Tests
         InvoiceResponse afterResponse = await _invoiceClient.Get(updateRequest.Id);
 
         await Assert.That(afterResponse).IsNotNull();
-        await Assert.That(afterResponse!.Seller!.Id).IsEquivalentTo(sellerFromTest.Id);
-        await Assert.That(afterResponse!.Customer!.Id).IsEquivalentTo(getResponse!.Customer!.Id);
-        await Assert.That(afterResponse!.Items!.Select(i => i.Id).ToList())
-            .IsEquivalentTo(getResponse!.Items!.Select(i => i.Id).ToList());
-        await Assert.That(afterResponse!.SeriesId).IsEquivalentTo(getResponse!.SeriesId);
-        await Assert.That(afterResponse!.InvoiceNumber).IsEqualTo(getResponse!.InvoiceNumber);
-    }
-
-    [Test]
-    [DependsOn(nameof(InvoiceAdd_Valid_Success))]
-    public async Task CustomerWithInvoicesUpdate_SameSeries_Success()
-    {
-        CustomerResponse customer = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller0_Customer0];
-
-        CustomerUpdateRequest updateRequest = new()
-        {
-            Id = customer.Id,
-            Email = customer.Email,
-            CompanyName = customer.CompanyName,
-            CompanyNumber = customer.CompanyNumber,
-            Street = customer.Street,
-            City = customer.City,
-            State = customer.State,
-            Phone = customer.Phone,
-            SeriesId = customer.SeriesId
-        };
-
-        await _customerClient.Update(updateRequest);
-
-        CustomerResponse getResponse = await _customerClient.Get(updateRequest.Id);
-
-        await Assert.That(getResponse).IsNotNull();
-        await Assert.That(getResponse!.Id).IsEqualTo(updateRequest.Id);
-        await Assert.That(getResponse!.SellerId).IsEqualTo(customer.SellerId);
-        await Assert.That(getResponse!.Email).IsEqualTo(updateRequest.Email);
-        await Assert.That(getResponse!.CompanyName).IsEqualTo(updateRequest.CompanyName);
-        await Assert.That(getResponse!.CompanyNumber).IsEqualTo(updateRequest.CompanyNumber);
-        await Assert.That(getResponse!.Street).IsEqualTo(updateRequest.Street);
-        await Assert.That(getResponse!.City).IsEqualTo(updateRequest.City);
-        await Assert.That(getResponse!.State).IsEqualTo(updateRequest.State);
-        await Assert.That(getResponse!.Phone).IsEqualTo(updateRequest.Phone);
-        await Assert.That(getResponse!.SeriesId).IsEqualTo(updateRequest.SeriesId);
-        await Assert.That(getResponse!.SeriesName).IsEqualTo(customer.SeriesName);
+        await AssertInvoiceDataUnchanged(afterResponse, getResponse);
+        await Assert.That(afterResponse.Comments).IsEqualTo(getResponse.Comments);
     }
 
     [Test]
@@ -1897,9 +1871,9 @@ public partial class Tests
         await expectedError.CheckErrors(error);
     }
 
-    private static async Task<InvoiceResponse> AddNumberingInvoice(Guid userId, Guid sellerId, Guid customerId, Guid itemId)
+    private static InvoiceAddRequest NewNumberingInvoice(Guid userId, Guid sellerId, Guid customerId, Guid itemId)
     {
-        InvoiceAddRequest addRequest = new()
+        return new InvoiceAddRequest
         {
             UserId = userId,
             SellerId = sellerId,
@@ -1909,10 +1883,37 @@ public partial class Tests
             CreatedDate = DateOnly.FromDateTime(DateTime.Now),
             Comments = "Numbering"
         };
+    }
 
-        AddResponse addResponse = await _invoiceClient.Add(addRequest);
+    // Runs every clean-up step even when one fails, and returns the failures.
+    private static async Task<List<Exception>> CleanUp(IEnumerable<Func<Task>> steps)
+    {
+        List<Exception> failures = [];
+        foreach (Func<Task> step in steps)
+        {
+            try
+            {
+                await step();
+            }
+            catch (Exception e)
+            {
+                failures.Add(e);
+            }
+        }
 
-        return await GetInvoice(addResponse.Id);
+        return failures;
+    }
+
+    private static async Task UpdateSeriesUnlessNumberIsTaken(SeriesUpdateRequest request)
+    {
+        try
+        {
+            await _seriesClient.Update(request);
+        }
+        catch (ClientAPIException e) when (e.Error?.StatusCode == HttpStatusCode.BadRequest
+            && e.Error.ExtendedMessage.StartsWith("Next number must be greater than"))
+        {
+        }
     }
 
     [Test]
@@ -1922,98 +1923,247 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceNumbering_SeriesRules_Success()
     {
-        AddResponse user = await _userClient.Add(new UserAddRequest
-        {
-            Email = "numbering@citadel.com",
-            Name = "Maester",
-            LastName = "Aemon",
-            Password = "StrongPassword"
-        });
-        AddResponse seller = await _sellerClient.Add(new SellerAddRequest
-        {
-            UserId = user.Id,
-            Email = "ravens@citadel.com",
-            CompanyName = "Citadel",
-            CompanyNumber = "CIT-1",
-            Street = "Archmaester road 1",
-            City = "Oldtown",
-            State = "The Reach",
-            Phone = "+100000001",
-            BankName = "Iron bank",
-            BankNumber = "IB-1"
-        });
-        AddResponse series = await _seriesClient.Add(new SeriesAddRequest { SellerId = seller.Id, Name = "NUM" });
-        AddResponse customer = await _customerClient.Add(new CustomerAddRequest
-        {
-            SellerId = seller.Id,
-            SeriesId = series.Id,
-            Email = "novice@citadel.com",
-            CompanyName = "Novices",
-            CompanyNumber = "NOV-1",
-            Street = "Library 2",
-            City = "Oldtown",
-            State = "The Reach",
-            Phone = "+100000002"
-        });
-        AddResponse item = await _itemClient.Add(new ItemAddRequest { CustomerId = customer.Id, Name = "Chain link", Quantity = 9999, Price = 5 });
+        List<Guid> invoiceIds = [];
+        List<Guid> itemIds = [];
+        List<Guid> customerIds = [];
+        Guid? seriesId = null;
+        Guid? sellerId = null;
+        Guid? userId = null;
+        bool succeeded = false;
 
-        // Invoices 1, 2, 3 in a new series.
-        List<InvoiceResponse> invoices = [];
-        for (int i = 1; i <= 3; i++)
+        try
         {
-            InvoiceResponse invoice = await AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id);
-            await Assert.That(invoice.InvoiceNumber).IsEqualTo(i);
-            await Assert.That(invoice.SeriesId).IsEqualTo(series.Id);
-            await Assert.That(invoice.SeriesName).IsEqualTo("NUM");
-            invoices.Add(invoice);
+            AddResponse user = await _userClient.Add(new UserAddRequest
+            {
+                Email = "numbering@citadel.com",
+                Name = "Maester",
+                LastName = "Aemon",
+                Password = "StrongPassword"
+            });
+            userId = user.Id;
+            AddResponse seller = await _sellerClient.Add(new SellerAddRequest
+            {
+                UserId = user.Id,
+                Email = "ravens@citadel.com",
+                CompanyName = "Citadel",
+                CompanyNumber = "CIT-1",
+                Street = "Archmaester road 1",
+                City = "Oldtown",
+                State = "The Reach",
+                Phone = "+100000001",
+                BankName = "Iron bank",
+                BankNumber = "IB-1"
+            });
+            sellerId = seller.Id;
+            AddResponse series = await _seriesClient.Add(new SeriesAddRequest { SellerId = seller.Id, Name = "NUM" });
+            seriesId = series.Id;
+            AddResponse customer = await _customerClient.Add(new CustomerAddRequest
+            {
+                SellerId = seller.Id,
+                SeriesId = series.Id,
+                Email = "novice@citadel.com",
+                CompanyName = "Novices",
+                CompanyNumber = "NOV-1",
+                Street = "Library 2",
+                City = "Oldtown",
+                State = "The Reach",
+                Phone = "+100000002"
+            });
+            customerIds.Add(customer.Id);
+            AddResponse otherCustomer = await _customerClient.Add(new CustomerAddRequest
+            {
+                SellerId = seller.Id,
+                SeriesId = series.Id,
+                Email = "acolyte@citadel.com",
+                CompanyName = "Acolytes",
+                CompanyNumber = "ACO-1",
+                Street = "Library 3",
+                City = "Oldtown",
+                State = "The Reach",
+                Phone = "+100000003"
+            });
+            customerIds.Add(otherCustomer.Id);
+            AddResponse item = await _itemClient.Add(new ItemAddRequest { CustomerId = customer.Id, Name = "Chain link", Quantity = 9999, Price = 5 });
+            itemIds.Add(item.Id);
+            AddResponse otherItem = await _itemClient.Add(new ItemAddRequest { CustomerId = otherCustomer.Id, Name = "Candle", Quantity = 9999, Price = 2 });
+            itemIds.Add(otherItem.Id);
+
+            async Task<InvoiceResponse> AddInvoice(bool forOtherCustomer = false)
+            {
+                AddResponse added = forOtherCustomer
+                    ? await _invoiceClient.Add(NewNumberingInvoice(user.Id, seller.Id, otherCustomer.Id, otherItem.Id))
+                    : await _invoiceClient.Add(NewNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id));
+                lock (invoiceIds)
+                    invoiceIds.Add(added.Id);
+
+                return await GetInvoice(added.Id);
+            }
+
+            async Task DeleteInvoice(Guid id)
+            {
+                await _invoiceClient.Delete(id);
+                lock (invoiceIds)
+                    invoiceIds.Remove(id);
+            }
+
+            // Two customers share the series, so their invoices 1, 2, 3 come from one sequence.
+            List<InvoiceResponse> invoices = [];
+            for (int i = 1; i <= 3; i++)
+            {
+                InvoiceResponse invoice = await AddInvoice(forOtherCustomer: i == 2);
+                await Assert.That(invoice.InvoiceNumber).IsEqualTo(i);
+                await Assert.That(invoice.SeriesId).IsEqualTo(series.Id);
+                await Assert.That(invoice.SeriesName).IsEqualTo("NUM");
+                invoices.Add(invoice);
+            }
+            await Assert.That(invoices[1].Customer!.Id).IsEqualTo(otherCustomer.Id);
+            await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(4);
+
+            // Deleting the latest invoice gives its number back.
+            await DeleteInvoice(invoices[2].Id);
+            await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(3);
+
+            InvoiceResponse again = await AddInvoice();
+            await Assert.That(again.InvoiceNumber).IsEqualTo(3);
+
+            // Deleting an invoice that isn't the latest leaves a gap.
+            await DeleteInvoice(invoices[1].Id);
+            await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(4);
+
+            // The next number can't go back to or below an existing invoice number.
+            SeriesUpdateRequest lowerNumber = new() { Id = series.Id, Name = "NUM", NextNumber = 3 };
+            ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Update(lowerNumber)))!.Error!;
+            ErrorModel expectedError = new("Validation failure", "Next number must be greater than 3, the highest invoice number in series NUM", HttpStatusCode.BadRequest);
+            await expectedError.CheckErrors(error);
+
+            // A series with invoices can't be renamed, so its invoices keep their series name.
+            SeriesUpdateRequest rename = new() { Id = series.Id, Name = "NUM2", NextNumber = 4 };
+            error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Update(rename)))!.Error!;
+            expectedError = new("Validation failure", "Series NUM has invoices, so its name can't be changed", HttpStatusCode.BadRequest);
+            await expectedError.CheckErrors(error);
+
+            InvoiceResponse oldInvoice = await GetInvoice(invoices[0].Id);
+            await Assert.That(oldInvoice.SeriesName).IsEqualTo("NUM");
+            await Assert.That(oldInvoice.InvoiceNumber).IsEqualTo(1);
+
+            InvoiceResponse afterRename = await AddInvoice();
+            await Assert.That(afterRename.SeriesName).IsEqualTo("NUM");
+            await Assert.That(afterRename.InvoiceNumber).IsEqualTo(4);
+
+            // A series with invoices can get a higher next number when it keeps its name (trimmed), and the next
+            // invoice uses it.
+            await _seriesClient.Update(new SeriesUpdateRequest { Id = series.Id, Name = " NUM ", NextNumber = 10 });
+            SeriesResponse raised = await _seriesClient.Get(series.Id);
+            await Assert.That(raised.Id).IsEqualTo(series.Id);
+            await Assert.That(raised.SellerId).IsEqualTo(seller.Id);
+            await Assert.That(raised.Name).IsEqualTo("NUM");
+            await Assert.That(raised.NextNumber).IsEqualTo(10);
+
+            InvoiceResponse afterRaise = await AddInvoice(forOtherCustomer: true);
+            await Assert.That(afterRaise.InvoiceNumber).IsEqualTo(10);
+
+            // A raised next number can be lowered again, down to the highest invoice number + 1.
+            await _seriesClient.Update(new SeriesUpdateRequest { Id = series.Id, Name = "NUM", NextNumber = 15 });
+            await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(15);
+            await _seriesClient.Update(new SeriesUpdateRequest { Id = series.Id, Name = "NUM", NextNumber = 11 });
+            await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(11);
+
+            // The customer copy in an invoice edit needs no series; the invoice keeps its own.
+            (SellerUpdateRequest sellerCopy, CustomerUpdateRequest customerCopy, List<InvoiceItemUpdateRequest> itemsCopy) = ExtractUpdateFromInvoice(afterRaise);
+            customerCopy.SeriesId = Guid.Empty;
+            await _invoiceClient.Update(new InvoiceUpdateRequest
+            {
+                Id = afterRaise.Id,
+                Comments = "Edited",
+                DueDate = afterRaise.DueDate,
+                CreatedDate = afterRaise.CreatedDate,
+                Seller = sellerCopy,
+                Customer = customerCopy,
+                Items = itemsCopy
+            });
+            InvoiceResponse afterEdit = await GetInvoice(afterRaise.Id);
+            await AssertInvoiceDataUnchanged(afterEdit, afterRaise);
+            await Assert.That(afterEdit.Comments).IsEqualTo("Edited");
+            await Assert.That(afterEdit.Status).IsEqualTo(afterRaise.Status);
+
+            // A customer with invoices can be edited while it keeps its series, and its old invoices don't change.
+            CustomerUpdateRequest customerUpdate = new()
+            {
+                Id = customer.Id,
+                SeriesId = series.Id,
+                Email = "chained@citadel.com",
+                CompanyName = "Novices of the Citadel",
+                CompanyNumber = "NOV-2",
+                Street = "Library 4",
+                City = "Old Oldtown",
+                State = "The Arbor",
+                Phone = "+100000099"
+            };
+            await _customerClient.Update(customerUpdate);
+
+            CustomerResponse updatedCustomer = await _customerClient.Get(customer.Id);
+            await Assert.That(updatedCustomer.Id).IsEqualTo(customerUpdate.Id);
+            await Assert.That(updatedCustomer.SellerId).IsEqualTo(seller.Id);
+            await Assert.That(updatedCustomer.SeriesId).IsEqualTo(customerUpdate.SeriesId);
+            await Assert.That(updatedCustomer.SeriesName).IsEqualTo("NUM");
+            await Assert.That(updatedCustomer.Email).IsEqualTo(customerUpdate.Email);
+            await Assert.That(updatedCustomer.CompanyName).IsEqualTo(customerUpdate.CompanyName);
+            await Assert.That(updatedCustomer.CompanyNumber).IsEqualTo(customerUpdate.CompanyNumber);
+            await Assert.That(updatedCustomer.Street).IsEqualTo(customerUpdate.Street);
+            await Assert.That(updatedCustomer.City).IsEqualTo(customerUpdate.City);
+            await Assert.That(updatedCustomer.State).IsEqualTo(customerUpdate.State);
+            await Assert.That(updatedCustomer.Phone).IsEqualTo(customerUpdate.Phone);
+
+            InvoiceResponse oldInvoiceAfterCustomerEdit = await GetInvoice(invoices[0].Id);
+            await AssertInvoiceDataUnchanged(oldInvoiceAfterCustomerEdit, invoices[0]);
+            await Assert.That(oldInvoiceAfterCustomerEdit.Comments).IsEqualTo(invoices[0].Comments);
+            await Assert.That(oldInvoiceAfterCustomerEdit.Status).IsEqualTo(invoices[0].Status);
+
+            // A series with invoices can't be deleted.
+            error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Delete(series.Id)))!.Error!;
+            expectedError = new("Validation failure", $"Series id {series.Id} is used by customers or invoices", HttpStatusCode.BadRequest);
+            await expectedError.CheckErrors(error);
+
+            // Invoices created at the same time get different, consecutive numbers, also while the next number
+            // is set to its current value at the same time.
+            SeriesUpdateRequest sameNumber = new() { Id = series.Id, Name = "NUM", NextNumber = 11 };
+            Task<InvoiceResponse>[] adds = Enumerable.Range(0, 10).Select(i => AddInvoice(forOtherCustomer: i % 2 == 1)).ToArray();
+            Task[] updates = Enumerable.Range(0, 10).Select(_ => UpdateSeriesUnlessNumberIsTaken(sameNumber)).ToArray();
+            await Task.WhenAll([.. adds, .. updates]);
+
+            await Assert.That(adds.Select(a => a.Result.InvoiceNumber).OrderBy(n => n).ToList())
+                .IsEquivalentTo(Enumerable.Range(11, 10).ToList());
+            await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(21);
+
+            // When the next number can't be reserved any more, the series is full.
+            await _seriesClient.Update(new SeriesUpdateRequest { Id = series.Id, Name = "NUM", NextNumber = int.MaxValue - 1 });
+            InvoiceResponse lastInvoice = await AddInvoice();
+            await Assert.That(lastInvoice.InvoiceNumber).IsEqualTo(int.MaxValue - 1);
+
+            error = (await Assert.ThrowsAsync<ClientAPIException>(() => AddInvoice()))!.Error!;
+            expectedError = new("Validation failure", $"Invoice was not created: customer id {customer.Id} is no longer in series id {series.Id}, or the series has no numbers left", HttpStatusCode.BadRequest);
+            await expectedError.CheckErrors(error);
+            await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(int.MaxValue);
+
+            succeeded = true;
         }
-        await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(4);
+        finally
+        {
+            List<Func<Task>> steps = [
+                .. invoiceIds.ToList().Select<Guid, Func<Task>>(id => () => _invoiceClient.Delete(id)),
+                .. itemIds.Select<Guid, Func<Task>>(id => () => _itemClient.Delete(id)),
+                .. customerIds.Select<Guid, Func<Task>>(id => () => _customerClient.Delete(id))
+            ];
+            if (seriesId is not null)
+                steps.Add(() => _seriesClient.Delete(seriesId.Value));
+            if (sellerId is not null)
+                steps.Add(() => _sellerClient.Delete(sellerId.Value));
+            if (userId is not null)
+                steps.Add(() => _userClient.Delete(userId.Value));
 
-        // Deleting the latest invoice gives its number back.
-        await _invoiceClient.Delete(invoices[2].Id);
-        await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(3);
-
-        InvoiceResponse again = await AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id);
-        await Assert.That(again.InvoiceNumber).IsEqualTo(3);
-
-        // Deleting an invoice that isn't the latest leaves a gap.
-        await _invoiceClient.Delete(invoices[1].Id);
-        await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(4);
-
-        // The next number can't go back to or below an existing invoice number.
-        SeriesUpdateRequest lowerNumber = new() { Id = series.Id, Name = "NUM", NextNumber = 3 };
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Update(lowerNumber)))!.Error!;
-        ErrorModel expectedError = new("Validation failure", "Next number must be greater than 3, the highest invoice number in series NUM", HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-
-        // A series with invoices can't be renamed, so its invoices keep their series name.
-        SeriesUpdateRequest rename = new() { Id = series.Id, Name = "NUM2", NextNumber = 4 };
-        error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Update(rename)))!.Error!;
-        expectedError = new("Validation failure", "Series NUM has invoices, so its name can't be changed", HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-
-        InvoiceResponse oldInvoice = await GetInvoice(invoices[0].Id);
-        await Assert.That(oldInvoice.SeriesName).IsEqualTo("NUM");
-        await Assert.That(oldInvoice.InvoiceNumber).IsEqualTo(1);
-
-        InvoiceResponse afterRename = await AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id);
-        await Assert.That(afterRename.SeriesName).IsEqualTo("NUM");
-        await Assert.That(afterRename.InvoiceNumber).IsEqualTo(4);
-
-        // A series with invoices can't be deleted.
-        error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Delete(series.Id)))!.Error!;
-        expectedError = new("Validation failure", $"Series id {series.Id} is used by customers or invoices", HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-
-        // Invoices created at the same time get different, consecutive numbers.
-        InvoiceResponse[] parallel = await Task.WhenAll(Enumerable.Range(0, 10)
-            .Select(_ => AddNumberingInvoice(user.Id, seller.Id, customer.Id, item.Id)));
-        await Assert.That(parallel.Select(i => i.InvoiceNumber).OrderBy(n => n).ToList())
-            .IsEquivalentTo(Enumerable.Range(5, 10).ToList());
-        await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(15);
-
-        List<Guid> created = [invoices[0].Id, again.Id, afterRename.Id, .. parallel.Select(i => i.Id)];
-        foreach (Guid id in created)
-            await _invoiceClient.Delete(id);
+            List<Exception> failures = await CleanUp(steps);
+            if (succeeded && failures.Count > 0)
+                throw new AggregateException("Clean-up failed", failures);
+        }
     }
 }

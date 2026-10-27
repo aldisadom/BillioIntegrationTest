@@ -1,6 +1,7 @@
 using BillerContracts;
 using BillerContracts.Clients;
 using BillerContracts.Clients.Interfaces;
+using BillerContracts.Enums;
 using BillerContracts.Requests.Series;
 using BillerContracts.Responses;
 using BillerContracts.Responses.Series;
@@ -222,25 +223,35 @@ public partial class Tests
             Name = "UPD"
         };
         AddResponse addResponse = await _seriesClient.Add(addRequest);
+        bool succeeded = false;
 
-        SeriesUpdateRequest updateRequest = new()
+        try
         {
-            Id = addResponse.Id,
-            Name = "UPD_new",
-            NextNumber = 7
-        };
+            SeriesUpdateRequest updateRequest = new()
+            {
+                Id = addResponse.Id,
+                Name = " UPDATED_NM ",
+                NextNumber = 7
+            };
 
-        await _seriesClient.Update(updateRequest);
+            await _seriesClient.Update(updateRequest);
 
-        SeriesResponse getResponse = await _seriesClient.Get(addResponse.Id);
+            SeriesResponse getResponse = await _seriesClient.Get(addResponse.Id);
 
-        await Assert.That(getResponse).IsNotNull();
-        await Assert.That(getResponse!.Id).IsEqualTo(updateRequest.Id);
-        await Assert.That(getResponse!.SellerId).IsEqualTo(addRequest.SellerId);
-        await Assert.That(getResponse!.Name).IsEqualTo(updateRequest.Name);
-        await Assert.That(getResponse!.NextNumber).IsEqualTo(updateRequest.NextNumber);
+            await Assert.That(getResponse).IsNotNull();
+            await Assert.That(getResponse!.Id).IsEqualTo(updateRequest.Id);
+            await Assert.That(getResponse!.SellerId).IsEqualTo(addRequest.SellerId);
+            await Assert.That(getResponse!.Name).IsEqualTo("UPDATED_NM");
+            await Assert.That(getResponse!.NextNumber).IsEqualTo(updateRequest.NextNumber);
 
-        await _seriesClient.Delete(addResponse.Id);
+            succeeded = true;
+        }
+        finally
+        {
+            List<Exception> failures = await CleanUp([() => _seriesClient.Delete(addResponse.Id)]);
+            if (succeeded && failures.Count > 0)
+                throw new AggregateException("Clean-up failed", failures);
+        }
     }
 
     [Test]
@@ -332,9 +343,91 @@ public partial class Tests
             .IsNotNull()
             .And.HasCount().EqualTo(2);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
-        await Assert.That(listResponse.Series[0].Name).IsEqualTo("LL");
-        await Assert.That(listResponse.Series[1].Name).IsEqualTo("LX");
-        await Assert.That(listResponse.Series.All(s => s.SellerId == request.SellerId)).IsTrue();
+        await Assert.That(listResponse.Page).IsEqualTo(1);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
+
+        string[] names = ["LL", "LX"];
+        for (int i = 0; i < names.Length; i++)
+        {
+            SeriesModel expected = SeriesTestDataSources.SavedSeries[names[i]];
+            await Assert.That(listResponse.Series[i].Id).IsEqualTo(expected.Id);
+            await Assert.That(listResponse.Series[i].SellerId).IsEqualTo(request.SellerId!.Value);
+            await Assert.That(listResponse.Series[i].Name).IsEqualTo(expected.Name);
+            await Assert.That(listResponse.Series[i].NextNumber).IsEqualTo(expected.NextNumber!.Value);
+        }
+    }
+
+    [Test]
+    [DependsOn(nameof(SeriesDelete_Valid_Success))]
+    [DependsOn(nameof(SeriesUpdate_Valid_Success))]
+    public async Task SeriesGetAllForSeller_SecondPage_Success()
+    {
+        SeriesGetRequest request = new()
+        {
+            SellerId = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().First()].Id,
+            Page = 2,
+            PageSize = PageSize.p1
+        };
+
+        SeriesListResponse listResponse = await _seriesClient.Get(request);
+
+        SeriesModel expected = SeriesTestDataSources.SavedSeries["LX"];
+        await Assert.That(listResponse.Series)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(2);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
+        await Assert.That(listResponse.Series[0].Id).IsEqualTo(expected.Id);
+        await Assert.That(listResponse.Series[0].SellerId).IsEqualTo(request.SellerId!.Value);
+        await Assert.That(listResponse.Series[0].Name).IsEqualTo(expected.Name);
+        await Assert.That(listResponse.Series[0].NextNumber).IsEqualTo(expected.NextNumber!.Value);
+    }
+
+    [Test]
+    [DependsOn(nameof(SeriesDelete_Valid_Success))]
+    [DependsOn(nameof(SeriesUpdate_Valid_Success))]
+    public async Task SeriesGetAllForSeller_LastAllowedPage_Success()
+    {
+        SeriesGetRequest request = new()
+        {
+            SellerId = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().First()].Id,
+            Page = int.MaxValue / 50,
+            PageSize = PageSize.p50
+        };
+
+        SeriesListResponse listResponse = await _seriesClient.Get(request);
+
+        await Assert.That(listResponse.Series)
+            .IsNotNull()
+            .And.IsEmpty();
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(request.Page);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p50);
+    }
+
+    [Test]
+    [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
+    public async Task SeriesGet_PageAboveMaximum_Fail()
+    {
+        int maxPage = int.MaxValue / 50;
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { Page = maxPage + 1 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", $"Please specify page from 1 to {maxPage}", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
+    public async Task SeriesUpdate_EmptyId_Fail()
+    {
+        SeriesUpdateRequest updateRequest = new() { Id = Guid.Empty, Name = "LX", NextNumber = 1 };
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Update(updateRequest)))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify series Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
     }
 
     [Test]
@@ -354,15 +447,29 @@ public partial class Tests
         SeriesAddRequest addRequest = new()
         {
             SellerId = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().ToArray()[1]].Id,
-            Name = " TR "
+            Name = " ABCDEFGHIJ "
         };
 
         AddResponse addResponse = await _seriesClient.Add(addRequest);
-        SeriesResponse getResponse = await _seriesClient.Get(addResponse.Id);
+        bool succeeded = false;
 
-        await Assert.That(getResponse.Name).IsEqualTo("TR");
+        try
+        {
+            SeriesResponse getResponse = await _seriesClient.Get(addResponse.Id);
 
-        await _seriesClient.Delete(addResponse.Id);
+            await Assert.That(getResponse.Id).IsEqualTo(addResponse.Id);
+            await Assert.That(getResponse.SellerId).IsEqualTo(addRequest.SellerId);
+            await Assert.That(getResponse.Name).IsEqualTo("ABCDEFGHIJ");
+            await Assert.That(getResponse.NextNumber).IsEqualTo(1);
+
+            succeeded = true;
+        }
+        finally
+        {
+            List<Exception> failures = await CleanUp([() => _seriesClient.Delete(addResponse.Id)]);
+            if (succeeded && failures.Count > 0)
+                throw new AggregateException("Clean-up failed", failures);
+        }
     }
 
     public static async Task Series_Delete_All()
