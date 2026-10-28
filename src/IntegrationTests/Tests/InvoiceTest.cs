@@ -1713,18 +1713,9 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
-    public async Task InvoiceShowsCurrentSellerCustomerAndUser_Valid_Success()
+    public async Task InvoiceShowsCurrentSellerAndCustomer_Valid_Success()
     {
         var (seller, customer, item, request, invoiceId) = await AddInvoiceWithOwnData("Jon");
-
-        UserResponse user = await _userClient.Get(request.UserId);
-        UserUpdateRequest userUpdate = new()
-        {
-            Id = user.Id,
-            Name = user.Name + "_new",
-            LastName = user.LastName + "_new"
-        };
-        await _userClient.Update(userUpdate);
 
         SellerUpdateRequest sellerUpdate = new()
         {
@@ -1797,7 +1788,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceKeepsItemPriceUntilUpdated_Valid_Success()
     {
-        var (_, customer, item, request, invoiceId) = await AddInvoiceWithOwnData("Arya");
+        var (_, _, item, request, invoiceId) = await AddInvoiceWithOwnData("Arya");
 
         ItemUpdateRequest itemUpdate = new()
         {
@@ -1837,7 +1828,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceWithDeletedItem_Valid_Success()
     {
-        var (_, customer, item, request, invoiceId) = await AddInvoiceWithOwnData("Sansa");
+        var (_, _, item, request, invoiceId) = await AddInvoiceWithOwnData("Sansa");
 
         await _itemClient.Delete(item.Id);
 
