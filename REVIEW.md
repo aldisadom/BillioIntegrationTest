@@ -6,7 +6,7 @@ Failure here looks like:
 - An error test checks only the status code and not the message.
 - A URL or port is hard-coded in C# code instead of coming from `appsettings.json` (or a `ClientsOptions__*` environment variable).
 - A mapping library (AutoMapper or similar) is added.
-- A Biller failure mode has no test: a wrong invoice total, a duplicate or skipped invoice number, an old invoice changing after master data is edited, a password or hash in a response, or one user's data returned to another. There are no tests yet for PDF generation, invoice status, pagination, or cross-user access.
+- A Biller failure mode has no test: a wrong invoice total, a duplicate or skipped invoice number, an old invoice or its PDF changing after an item is edited, a password or hash in a response, or one user's data returned to another. Invoices show their current seller, customer and user (BIL-86). There are no tests yet for PDF generation, pagination, or cross-user access.
 
 Skip: `bin/`, `obj/`, `TestResults/`.
 

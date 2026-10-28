@@ -436,12 +436,6 @@ public static class CustomerTestDataSources
         };
     }
 
-    // An invoice keeps its own series, so the customer copy in an invoice update needs no series.
-    public static IEnumerable<TestCaseError<CustomerModel>> InvoiceUpdateDataInvalid()
-    {
-        return UpdateDataInvalid().Where(testCase => testCase.TestName != "No series");
-    }
-
     public static IEnumerable<string> Emails()
     {
         yield return "lannister_libations@lannister.com";

@@ -29,6 +29,14 @@ public record InvoiceDetaisUpdateTestModel
     public DateOnly CreatedDate { get; set; }
 }
 
+public record InvoiceIdsUpdateTestModel
+{
+    public string BucketKey { get; set; } = string.Empty;
+    public string SellerEmail { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
+    public List<InvoiceItemTestModel> Items { get; set; } = [];
+}
+
 public record InvoiceStatusChangeTestModel
 {
     public InvoiceStatus StartStatus { get; set; }
