@@ -29,7 +29,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL"
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -45,7 +45,7 @@ public static class CustomerTestDataSources
                 City = "Bravoos",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "FF"
+                SeriesName = "FF"
             }
         };
     }
@@ -69,7 +69,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL"
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -90,7 +90,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL"
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -111,7 +111,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL"
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -132,7 +132,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL"
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -153,7 +153,7 @@ public static class CustomerTestDataSources
                 Street = "Lannister Lane 123",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL"
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -174,7 +174,7 @@ public static class CustomerTestDataSources
                 Street = "Lannister Lane 123",
                 City = "Casterly Rock",
                 Phone = "+123450679",
-                InvoiceName = "LL"
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -195,17 +195,17 @@ public static class CustomerTestDataSources
                 Street = "Lannister Lane 123",
                 City = "Casterly Rock",
                 State = "The Free Cities",
-                InvoiceName = "LL"
+                SeriesName = "LL"
             }
         };
         yield return new()
         {
-            TestName = "No invoice name",
+            TestName = "No series",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice name"
+                ExtendedMessage = "Please specify series Id"
             },
             Data = new()
             {
@@ -221,12 +221,12 @@ public static class CustomerTestDataSources
         };
         yield return new()
         {
-            TestName = "No seller",
+            TestName = "Seller the series doesn't belong to",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Key does not exist: seller_id"
+                ExtendedMessage = "Change me"
             },
             Data = new()
             {
@@ -237,7 +237,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL"
+                SeriesName = "LL"
             }
         };
     }
@@ -263,8 +263,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL",
-                InvoiceNumber = 99,
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -285,8 +284,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL",
-                InvoiceNumber = 99,
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -307,8 +305,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL",
-                InvoiceNumber = 99
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -329,8 +326,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL",
-                InvoiceNumber = 99
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -351,8 +347,7 @@ public static class CustomerTestDataSources
                 City = "Casterly Rock",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL",
-                InvoiceNumber = 99
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -373,8 +368,7 @@ public static class CustomerTestDataSources
                 Street = "Lannister Lane 123",
                 State = "The Free Cities",
                 Phone = "+123450679",
-                InvoiceName = "LL",
-                InvoiceNumber = 99
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -395,8 +389,7 @@ public static class CustomerTestDataSources
                 Street = "Lannister Lane 123",
                 City = "Casterly Rock",
                 Phone = "+123450679",
-                InvoiceName = "LL",
-                InvoiceNumber = 99
+                SeriesName = "LL"
             }
         };
         yield return new()
@@ -417,18 +410,17 @@ public static class CustomerTestDataSources
                 Street = "Lannister Lane 123",
                 City = "Casterly Rock",
                 State = "The Free Cities",
-                InvoiceName = "LL",
-                InvoiceNumber = 99
+                SeriesName = "LL"
             }
         };
         yield return new()
         {
-            TestName = "No invoice name",
+            TestName = "No series",
             Error = new ErrorModel()
             {
                 StatusCode = HttpStatusCode.BadRequest,
                 Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice name"
+                ExtendedMessage = "Please specify series Id"
             },
             Data = new()
             {
@@ -439,53 +431,7 @@ public static class CustomerTestDataSources
                 Street = "Lannister Lane 123",
                 City = "Casterly Rock",
                 State = "The Free Cities",
-                Phone = "+123450679",
-                InvoiceNumber = 99
-            }
-        };
-        yield return new()
-        {
-            TestName = "No invoice number",
-            Error = new ErrorModel()
-            {
-                StatusCode = HttpStatusCode.BadRequest,
-                Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice number that should be more than 0"
-            },
-            Data = new()
-            {
-                Id = default,
-                Email = Emails().First(),
-                CompanyName = "Lannister Libations",
-                CompanyNumber = "CN123456789",
-                Street = "Lannister Lane 123",
-                City = "Casterly Rock",
-                State = "The Free Cities",
-                Phone = "+123450679",
-                InvoiceName = "LL"
-            }
-        };
-        yield return new()
-        {
-            TestName = "Invoice number 0",
-            Error = new ErrorModel()
-            {
-                StatusCode = HttpStatusCode.BadRequest,
-                Message = "Validation failure",
-                ExtendedMessage = "Please provide invoice number that should be more than 0"
-            },
-            Data = new()
-            {
-                Id = default,
-                Email = Emails().First(),
-                CompanyName = "Lannister Libations",
-                CompanyNumber = "CN123456789",
-                Street = "Lannister Lane 123",
-                City = "Casterly Rock",
-                State = "The Free Cities",
-                Phone = "+123450679",
-                InvoiceName = "LL",
-                InvoiceNumber = 0
+                Phone = "+123450679"
             }
         };
     }
@@ -502,6 +448,22 @@ public partial class Tests
 {
     private static readonly ICustomerClient _customerClient = TestClients.Customer;
 
+    private static string SeriesNameAfterUpdate(CustomerModel customer) => customer.SeriesName == "LL" ? "LX" : "FX";
+
+    private static async Task AssertListedCustomerSeries(CustomerResponse listed)
+    {
+        CustomerModel saved = CustomerTestDataSources.SavedCustomers.Values.Single(c => c.Id == listed.Id);
+        string expectedSeries = SeriesNameAfterUpdate(saved);
+
+        await Assert.That(listed.SeriesId).IsEqualTo(SeriesIdByName(expectedSeries));
+        await Assert.That(listed.SeriesName).IsEqualTo(expectedSeries);
+    }
+
+    private static Guid SeriesIdByName(string seriesName)
+    {
+        return string.IsNullOrEmpty(seriesName) ? Guid.Empty : SeriesTestDataSources.SavedSeries[seriesName].Id;
+    }
+
     [Test]
     [DependsOn(nameof(SellerDelete_Valid_Success))]
     public async Task Customer_BeforeTests_DBEmpty()
@@ -515,6 +477,7 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
+    [DependsOn(nameof(SeriesAdd_Valid_Success), [typeof(TestCaseModel<SeriesModel>)])]
     [MethodDataSource(typeof(CustomerTestDataSources), nameof(CustomerTestDataSources.AddData))]
     [DisplayName("Customer add, valid data: $testCase")]
     public async Task CustomerAdd_Valid_Success(TestCaseModel<CustomerModel> testCase)
@@ -530,7 +493,7 @@ public partial class Tests
             City = customerModel.City,
             State = customerModel.State,
             Phone = customerModel.Phone,
-            InvoiceName = customerModel.InvoiceName
+            SeriesId = SeriesIdByName(customerModel.SeriesName)
         };
 
         AddResponse addResponse = await _customerClient.Add(addRequest);
@@ -548,7 +511,8 @@ public partial class Tests
         await Assert.That(getResponse!.City).IsEqualTo(addRequest.City);
         await Assert.That(getResponse!.State).IsEqualTo(addRequest.State);
         await Assert.That(getResponse!.Phone).IsEqualTo(addRequest.Phone);
-        await Assert.That(getResponse!.InvoiceName).IsEqualTo(addRequest.InvoiceName);
+        await Assert.That(getResponse!.SeriesId).IsEqualTo(addRequest.SeriesId);
+        await Assert.That(getResponse!.SeriesName).IsEqualTo(customerModel.SeriesName);
 
         CustomerModel customer = new()
         {
@@ -561,8 +525,7 @@ public partial class Tests
             City = getResponse.City,
             State = getResponse.State,
             Phone = getResponse.Phone,
-            InvoiceName = getResponse.InvoiceName,
-            InvoiceNumber = getResponse.InvoiceNumber
+            SeriesName = getResponse.SeriesName
         };
 
         if (!CustomerTestDataSources.SavedCustomers.TryAdd(addRequest.Email, customer))
@@ -588,10 +551,13 @@ public partial class Tests
             City = customerModel.City,
             State = customerModel.State,
             Phone = customerModel.Phone,
-            InvoiceName = customerModel.InvoiceName
+            SeriesId = SeriesIdByName(customerModel.SeriesName)
         };
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Add(addRequest)))!.Error!;
+
+        if (testCase.Error.ExtendedMessage == "Change me")
+            testCase.Error.ExtendedMessage = $"Series id {addRequest.SeriesId} is invalid for seller id {addRequest.SellerId}";
 
         await testCase.Error!.CheckErrors(error);
     }
@@ -610,7 +576,7 @@ public partial class Tests
             City = "Empty",
             State = "Void",
             Phone = "+000000000",
-            InvoiceName = "Hole"
+            SeriesId = SeriesIdByName("LL")
         };
 
         AddResponse addResponse = await _customerClient.Add(addRequest);
@@ -649,6 +615,7 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(CustomerDelete_Valid_Success))]
+    [DependsOn(nameof(CustomerUpdate_Valid_Success), [typeof(string)])]
     public async Task CustomerGetAll_Valid_Success()
     {
         CustomerListResponse listResponse = await _customerClient.Get();
@@ -656,10 +623,14 @@ public partial class Tests
         await Assert.That(listResponse.Customers)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+
+        foreach (var customer in listResponse.Customers)
+            await AssertListedCustomerSeries(customer);
     }
 
     [Test]
     [DependsOn(nameof(CustomerDelete_Valid_Success))]
+    [DependsOn(nameof(CustomerUpdate_Valid_Success), [typeof(string)])]
     public async Task CustomerGetAllForSeller_Valid_Success()
     {
         var request = new CustomerGetRequest()
@@ -674,6 +645,7 @@ public partial class Tests
             .And.HasCount().EqualTo(1);
 
         await Assert.That(listResponse.Customers[0].SellerId).IsEquivalentTo(request.SellerId!.Value);
+        await AssertListedCustomerSeries(listResponse.Customers[0]);
     }
 
     [Test]
@@ -694,8 +666,7 @@ public partial class Tests
             City = customerModel.City + "_new",
             State = customerModel.State + "_new",
             Phone = customerModel.Phone + "_new",
-            InvoiceName = customerModel.InvoiceName + "_new",
-            InvoiceNumber = customerModel.InvoiceNumber + 99
+            SeriesId = SeriesIdByName(SeriesNameAfterUpdate(customerModel))
         };
 
         await _customerClient.Update(updateRequest);
@@ -710,8 +681,35 @@ public partial class Tests
         await Assert.That(getResponse!.City).IsEqualTo(updateRequest.City);
         await Assert.That(getResponse!.State).IsEqualTo(updateRequest.State);
         await Assert.That(getResponse!.Phone).IsEqualTo(updateRequest.Phone);
-        await Assert.That(getResponse!.InvoiceName).IsEqualTo(updateRequest.InvoiceName);
-        await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(updateRequest.InvoiceNumber);
+        await Assert.That(getResponse!.SeriesId).IsEqualTo(updateRequest.SeriesId);
+        await Assert.That(getResponse!.SeriesName).IsEqualTo(SeriesNameAfterUpdate(customerModel));
+    }
+
+    [Test]
+    [DependsOn(nameof(CustomerAdd_Valid_Success), [typeof(TestCaseModel<CustomerModel>)])]
+    public async Task CustomerUpdate_SeriesOfOtherSeller_Fail()
+    {
+        CustomerModel customerModel = CustomerTestDataSources.SavedCustomers[CustomerTestDataSources.Emails().First()];
+        SeriesModel otherSellersSeries = SeriesTestDataSources.SavedSeries["FF"];
+
+        CustomerUpdateRequest updateRequest = new()
+        {
+            Id = customerModel.Id,
+            Email = customerModel.Email,
+            CompanyName = customerModel.CompanyName,
+            CompanyNumber = customerModel.CompanyNumber,
+            Street = customerModel.Street,
+            City = customerModel.City,
+            State = customerModel.State,
+            Phone = customerModel.Phone,
+            SeriesId = otherSellersSeries.Id
+        };
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Update(updateRequest)))!.Error!;
+
+        Guid sellerId = SellerTestDataSources.SavedSellers[customerModel.SellerEmail].Id;
+        ErrorModel expectedError = new("Validation failure", $"Series id {otherSellersSeries.Id} is invalid for seller id {sellerId}", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
     }
 
     [Test]
@@ -733,8 +731,7 @@ public partial class Tests
             City = customer.City,
             State = customer.State,
             Phone = customer.Phone,
-            InvoiceName = customer.InvoiceName,
-            InvoiceNumber = customer.InvoiceNumber
+            SeriesId = SeriesIdByName(customer.SeriesName)
         };
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Update(updateRequest)))!.Error!;
