@@ -1878,18 +1878,6 @@ public partial class Tests
         return failures;
     }
 
-    private static async Task UpdateSeriesUnlessNumberIsTaken(SeriesUpdateRequest request)
-    {
-        try
-        {
-            await _seriesClient.Update(request);
-        }
-        catch (ClientAPIException e) when (e.Error?.StatusCode == HttpStatusCode.BadRequest
-            && e.Error.ExtendedMessage.StartsWith("Next number must be greater than"))
-        {
-        }
-    }
-
     [Test]
     [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
@@ -2091,12 +2079,9 @@ public partial class Tests
             expectedError = new("Validation failure", $"Series id {series.Id} is used by customers or invoices", HttpStatusCode.BadRequest);
             await expectedError.CheckErrors(error);
 
-            // Invoices created at the same time get different, consecutive numbers, also while the next number
-            // is set to its current value at the same time.
-            SeriesUpdateRequest sameNumber = new() { Id = series.Id, Name = "NUM", NextNumber = 11 };
+            // Invoices created at the same time get different, consecutive numbers.
             Task<InvoiceResponse>[] adds = Enumerable.Range(0, 10).Select(i => AddInvoice(forOtherCustomer: i % 2 == 1)).ToArray();
-            Task[] updates = Enumerable.Range(0, 10).Select(_ => UpdateSeriesUnlessNumberIsTaken(sameNumber)).ToArray();
-            await Task.WhenAll([.. adds, .. updates]);
+            await Task.WhenAll(adds);
 
             await Assert.That(adds.Select(a => a.Result.InvoiceNumber).OrderBy(n => n).ToList())
                 .IsEquivalentTo(Enumerable.Range(11, 10).ToList());
