@@ -773,8 +773,8 @@ public partial class Tests
         return new InvoiceUpdateRequest()
         {
             Id = invoice.Id,
-            SellerId = invoice.Seller!.Id,
-            CustomerId = invoice.Customer!.Id,
+            SellerId = invoice.SellerId,
+            CustomerId = invoice.CustomerId,
             Items = invoice.Items!.Select(i => new InvoiceItemRequest()
             {
                 Id = i.Id,
@@ -867,10 +867,8 @@ public partial class Tests
         await Assert.That(actual.DueDate).IsEqualTo(request.DueDate);
         await Assert.That(actual.Comments).IsEqualTo(request.Comments);
         await Assert.That(actual.Status).IsEqualTo(InvoiceStatus.Created);
-        await Assert.That(actual.Seller!.Id).IsEqualTo(request.SellerId);
-        await Assert.That(actual.Seller!.UserId).IsEqualTo(request.UserId);
-        await Assert.That(actual.Customer!.Id).IsEqualTo(request.CustomerId);
-        await Assert.That(actual.Customer!.SellerId).IsEqualTo(request.SellerId);
+        await Assert.That(actual.SellerId).IsEqualTo(request.SellerId);
+        await Assert.That(actual.CustomerId).IsEqualTo(request.CustomerId);
     }
 
     private static async Task AssertSingleLine(InvoiceResponse actual, Guid itemId, string name, decimal price, decimal quantity, string? comments)
@@ -959,31 +957,10 @@ public partial class Tests
         await Assert.That(actual.DueDate).IsEqualTo(expected.DueDate);
         await Assert.That(actual.TotalPrice).IsEquivalentTo(expected.TotalPrice);
 
-        await Assert.That(actual.Seller).IsNotNull();
-        await Assert.That(actual.Seller!.Id).IsEqualTo(expected.Seller!.Id);
-        await Assert.That(actual.Seller!.UserId).IsEqualTo(expected.Seller!.UserId);
-        await Assert.That(actual.Seller!.Email).IsEqualTo(expected.Seller!.Email);
-        await Assert.That(actual.Seller!.CompanyName).IsEqualTo(expected.Seller!.CompanyName);
-        await Assert.That(actual.Seller!.CompanyNumber).IsEqualTo(expected.Seller!.CompanyNumber);
-        await Assert.That(actual.Seller!.Street).IsEqualTo(expected.Seller!.Street);
-        await Assert.That(actual.Seller!.City).IsEqualTo(expected.Seller!.City);
-        await Assert.That(actual.Seller!.State).IsEqualTo(expected.Seller!.State);
-        await Assert.That(actual.Seller!.Phone).IsEqualTo(expected.Seller!.Phone);
-        await Assert.That(actual.Seller!.BankName).IsEqualTo(expected.Seller!.BankName);
-        await Assert.That(actual.Seller!.BankNumber).IsEqualTo(expected.Seller!.BankNumber);
-
-        await Assert.That(actual.Customer).IsNotNull();
-        await Assert.That(actual.Customer!.Id).IsEqualTo(expected.Customer!.Id);
-        await Assert.That(actual.Customer!.SellerId).IsEqualTo(expected.Customer!.SellerId);
-        await Assert.That(actual.Customer!.Email).IsEqualTo(expected.Customer!.Email);
-        await Assert.That(actual.Customer!.CompanyName).IsEqualTo(expected.Customer!.CompanyName);
-        await Assert.That(actual.Customer!.CompanyNumber).IsEqualTo(expected.Customer!.CompanyNumber);
-        await Assert.That(actual.Customer!.Street).IsEqualTo(expected.Customer!.Street);
-        await Assert.That(actual.Customer!.City).IsEqualTo(expected.Customer!.City);
-        await Assert.That(actual.Customer!.State).IsEqualTo(expected.Customer!.State);
-        await Assert.That(actual.Customer!.Phone).IsEqualTo(expected.Customer!.Phone);
-        await Assert.That(actual.Customer!.SeriesId).IsEqualTo(expected.Customer!.SeriesId);
-        await Assert.That(actual.Customer!.SeriesName).IsEqualTo(expected.Customer!.SeriesName);
+        await Assert.That(actual.SellerId).IsEqualTo(expected.SellerId);
+        await Assert.That(actual.SellerName).IsEqualTo(expected.SellerName);
+        await Assert.That(actual.CustomerId).IsEqualTo(expected.CustomerId);
+        await Assert.That(actual.CustomerName).IsEqualTo(expected.CustomerName);
 
         await Assert.That(actual.Items)
             .IsNotNull()
@@ -1153,28 +1130,10 @@ public partial class Tests
         await Assert.That(getResponse!.InvoiceNumber).IsEquivalentTo(1);
         await Assert.That(getResponse!.Status).IsEqualTo(InvoiceStatus.Created);
 
-        await Assert.That(getResponse.Seller).IsNotNull();
-        await Assert.That(getResponse.Seller!.Id).IsEqualTo(seller.Id);
-        await Assert.That(getResponse.Seller!.Email).IsEqualTo(seller.Email);
-        await Assert.That(getResponse.Seller!.CompanyName).IsEqualTo(seller.CompanyName);
-        await Assert.That(getResponse.Seller!.Street).IsEqualTo(seller.Street);
-        await Assert.That(getResponse.Seller!.City).IsEqualTo(seller.City);
-        await Assert.That(getResponse.Seller!.State).IsEqualTo(seller.State);
-        await Assert.That(getResponse.Seller!.Phone).IsEqualTo(seller.Phone);
-        await Assert.That(getResponse.Seller!.BankName).IsEqualTo(seller.BankName);
-        await Assert.That(getResponse.Seller!.BankNumber).IsEqualTo(seller.BankNumber);
-
-        await Assert.That(getResponse.Customer).IsNotNull();
-        await Assert.That(getResponse.Customer!.Id).IsEqualTo(customer.Id);
-        await Assert.That(getResponse.Customer!.SellerId).IsEqualTo(seller.Id);
-        await Assert.That(getResponse.Customer!.Email).IsEqualTo(customer.Email);
-        await Assert.That(getResponse.Customer!.CompanyName).IsEqualTo(customer.CompanyName);
-        await Assert.That(getResponse.Customer!.Street).IsEqualTo(customer.Street);
-        await Assert.That(getResponse.Customer!.City).IsEqualTo(customer.City);
-        await Assert.That(getResponse.Customer!.State).IsEqualTo(customer.State);
-        await Assert.That(getResponse.Customer!.Phone).IsEqualTo(customer.Phone);
-        await Assert.That(getResponse.Customer!.SeriesId).IsEqualTo(customer.SeriesId);
-        await Assert.That(getResponse.Customer!.SeriesName).IsEqualTo(customer.SeriesName);
+        await Assert.That(getResponse.SellerId).IsEqualTo(seller.Id);
+        await Assert.That(getResponse.SellerName).IsEqualTo(seller.CompanyName);
+        await Assert.That(getResponse.CustomerId).IsEqualTo(customer.Id);
+        await Assert.That(getResponse.CustomerName).IsEqualTo(customer.CompanyName);
 
         await Assert.That(getResponse.Items)
             .IsNotNull()
@@ -1477,7 +1436,7 @@ public partial class Tests
         var invoiceModel = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().First());
         var request = new InvoiceGetRequest()
         {
-            CustomerId = invoiceModel.Customer!.Id
+            CustomerId = invoiceModel.CustomerId
         };
 
         InvoiceListResponse listResponse = await _invoiceClient.Get(request);
@@ -1486,7 +1445,7 @@ public partial class Tests
             .IsNotNull()
             .And.HasCount().EqualTo(1);
 
-        await Assert.That(listResponse.Invoices[0].Customer!.Id).IsEquivalentTo(request.CustomerId!.Value);
+        await Assert.That(listResponse.Invoices[0].CustomerId).IsEquivalentTo(request.CustomerId!.Value);
         await AssertListedInvoiceSeries(listResponse.Invoices[0]);
     }
 
@@ -1497,7 +1456,7 @@ public partial class Tests
         var invoiceModel = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().First());
         var request = new InvoiceGetRequest()
         {
-            SellerId = invoiceModel.Seller!.Id
+            SellerId = invoiceModel.SellerId
         };
 
         InvoiceListResponse listResponse = await _invoiceClient.Get(request);
@@ -1508,7 +1467,7 @@ public partial class Tests
 
         foreach (var invoice in listResponse.Invoices)
         {
-            await Assert.That(invoice.Seller!.Id).IsEquivalentTo(request.SellerId!.Value);
+            await Assert.That(invoice.SellerId).IsEquivalentTo(request.SellerId!.Value);
             await AssertListedInvoiceSeries(invoice);
         }
     }
@@ -1578,7 +1537,7 @@ public partial class Tests
         InvoiceResponse getResponse = await _invoiceClient.Get(invoiceFromBucket.Id);
         CustomerResponse customerFromTest = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller0_Customer0];
 
-        await Assert.That(getResponse!.Customer!.Id).IsEquivalentTo(customerFromTest.Id);
+        await Assert.That(getResponse!.CustomerId).IsEquivalentTo(customerFromTest.Id);
 
         CustomerResponse customerNew = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller0_Customer1];
         ItemResponse itemNew = InvoiceTestDataSources.SavedItems[InvoiceTestDataSources.User0_Seller0_Customer1_Item0];
@@ -1609,7 +1568,7 @@ public partial class Tests
 
         SellerResponse sellerFromTest = InvoiceTestDataSources.SavedSellers[InvoiceTestDataSources.User0_Seller0];
 
-        await Assert.That(getResponse!.Seller!.Id).IsEquivalentTo(sellerFromTest.Id);
+        await Assert.That(getResponse!.SellerId).IsEquivalentTo(sellerFromTest.Id);
 
         SellerResponse sellerNew = InvoiceTestDataSources.SavedSellers[InvoiceTestDataSources.User0_Seller1];
         CustomerResponse customerNew = InvoiceTestDataSources.SavedCustomers[InvoiceTestDataSources.User0_Seller1_Customer0];
@@ -1796,31 +1755,10 @@ public partial class Tests
         await AssertOwnInvoice(getResponse, invoiceId, request, customer);
         await AssertSingleLine(getResponse, item.Id, item.Name, item.Price, request.Items[0].Quantity, request.Items[0].Comments);
 
-        await Assert.That(getResponse.Seller).IsNotNull();
-        await Assert.That(getResponse.Seller!.Id).IsEqualTo(sellerUpdate.Id);
-        await Assert.That(getResponse.Seller!.UserId).IsEqualTo(request.UserId);
-        await Assert.That(getResponse.Seller!.Email).IsEqualTo(sellerUpdate.Email);
-        await Assert.That(getResponse.Seller!.CompanyName).IsEqualTo(sellerUpdate.CompanyName);
-        await Assert.That(getResponse.Seller!.CompanyNumber).IsEqualTo(sellerUpdate.CompanyNumber);
-        await Assert.That(getResponse.Seller!.Street).IsEqualTo(sellerUpdate.Street);
-        await Assert.That(getResponse.Seller!.City).IsEqualTo(sellerUpdate.City);
-        await Assert.That(getResponse.Seller!.State).IsEqualTo(sellerUpdate.State);
-        await Assert.That(getResponse.Seller!.Phone).IsEqualTo(sellerUpdate.Phone);
-        await Assert.That(getResponse.Seller!.BankName).IsEqualTo(sellerUpdate.BankName);
-        await Assert.That(getResponse.Seller!.BankNumber).IsEqualTo(sellerUpdate.BankNumber);
-
-        await Assert.That(getResponse.Customer).IsNotNull();
-        await Assert.That(getResponse.Customer!.Id).IsEqualTo(customerUpdate.Id);
-        await Assert.That(getResponse.Customer!.SellerId).IsEqualTo(request.SellerId);
-        await Assert.That(getResponse.Customer!.Email).IsEqualTo(customerUpdate.Email);
-        await Assert.That(getResponse.Customer!.CompanyName).IsEqualTo(customerUpdate.CompanyName);
-        await Assert.That(getResponse.Customer!.CompanyNumber).IsEqualTo(customerUpdate.CompanyNumber);
-        await Assert.That(getResponse.Customer!.Street).IsEqualTo(customerUpdate.Street);
-        await Assert.That(getResponse.Customer!.City).IsEqualTo(customerUpdate.City);
-        await Assert.That(getResponse.Customer!.State).IsEqualTo(customerUpdate.State);
-        await Assert.That(getResponse.Customer!.Phone).IsEqualTo(customerUpdate.Phone);
-        await Assert.That(getResponse.Customer!.SeriesId).IsEqualTo(customer.SeriesId);
-        await Assert.That(getResponse.Customer!.SeriesName).IsEqualTo(customer.SeriesName);
+        await Assert.That(getResponse.SellerId).IsEqualTo(sellerUpdate.Id);
+        await Assert.That(getResponse.SellerName).IsEqualTo(sellerUpdate.CompanyName);
+        await Assert.That(getResponse.CustomerId).IsEqualTo(customerUpdate.Id);
+        await Assert.That(getResponse.CustomerName).IsEqualTo(customerUpdate.CompanyName);
 
         await _invoiceClient.Delete(invoiceId);
     }
@@ -1902,7 +1840,7 @@ public partial class Tests
         await expectedError.CheckErrors(error);
 
         InvoiceResponse getResponse = await GetInvoice(invoiceId);
-        await Assert.That(getResponse.Customer!.Id).IsEqualTo(customer.Id);
+        await Assert.That(getResponse.CustomerId).IsEqualTo(customer.Id);
 
         await _invoiceClient.Delete(invoiceId);
     }
@@ -2052,7 +1990,7 @@ public partial class Tests
                 await Assert.That(invoice.SeriesName).IsEqualTo("NUM");
                 invoices.Add(invoice);
             }
-            await Assert.That(invoices[1].Customer!.Id).IsEqualTo(otherCustomer.Id);
+            await Assert.That(invoices[1].CustomerId).IsEqualTo(otherCustomer.Id);
             await Assert.That((await _seriesClient.Get(series.Id)).NextNumber).IsEqualTo(4);
 
             // Deleting the latest invoice gives its number back.
@@ -2143,7 +2081,7 @@ public partial class Tests
             await Assert.That(updatedCustomer.Phone).IsEqualTo(customerUpdate.Phone);
 
             InvoiceResponse oldInvoiceAfterCustomerEdit = await GetInvoice(invoices[0].Id);
-            invoices[0].Customer = updatedCustomer;
+            invoices[0].CustomerName = updatedCustomer.CompanyName;
             await AssertInvoiceDataUnchanged(oldInvoiceAfterCustomerEdit, invoices[0]);
             await Assert.That(oldInvoiceAfterCustomerEdit.Comments).IsEqualTo(invoices[0].Comments);
             await Assert.That(oldInvoiceAfterCustomerEdit.Status).IsEqualTo(invoices[0].Status);
