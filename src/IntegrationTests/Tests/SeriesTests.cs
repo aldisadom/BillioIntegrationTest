@@ -392,7 +392,7 @@ public partial class Tests
         SeriesGetRequest request = new()
         {
             SellerId = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().First()].Id,
-            Page = int.MaxValue / 50,
+            Page = MaxPage,
             PageSize = PageSize.p50
         };
 
@@ -410,11 +410,19 @@ public partial class Tests
     [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
     public async Task SeriesGet_PageAboveMaximum_Fail()
     {
-        int maxPage = int.MaxValue / 50;
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { Page = MaxPage + 1 })))!.Error!;
 
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { Page = maxPage + 1 })))!.Error!;
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
 
-        ErrorModel expectedError = new("Validation failure", $"Please specify page from 1 to {maxPage}", HttpStatusCode.BadRequest);
+    [Test]
+    [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
+    public async Task SeriesGet_UndefinedPageSize_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { PageSize = UndefinedPageSize })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", UndefinedPageSizeMessage, HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
     }
 
@@ -436,7 +444,7 @@ public partial class Tests
     {
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { Page = 0 })))!.Error!;
 
-        ErrorModel expectedError = new("Validation failure", $"Please specify page from 1 to {int.MaxValue / 50}", HttpStatusCode.BadRequest);
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
     }
 

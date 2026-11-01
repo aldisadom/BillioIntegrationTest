@@ -1,6 +1,7 @@
 ﻿using BillerContracts;
 using BillerContracts.Clients;
 using BillerContracts.Clients.Interfaces;
+using BillerContracts.Enums;
 using BillerContracts.Requests.Item;
 using BillerContracts.Responses;
 using BillerContracts.Responses.Item;
@@ -270,6 +271,46 @@ public partial class Tests
         await Assert.That(response.Items)
             .IsNotNull()
             .And.IsEmpty();
+    }
+
+    [Test]
+    [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
+    public async Task ItemGet_LastAllowedPage_Success()
+    {
+        ItemListResponse response = await _itemClient.Get(new ItemGetRequest { Page = MaxPage, PageSize = PageSize.p50 });
+
+        // Items aren't paged until BIL-102: the list holds the items other tests saved, and Page, PageSize and TotalCount aren't set
+        await Assert.That(response.Items).IsNotNull();
+    }
+
+    [Test]
+    [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
+    public async Task ItemGet_PageZero_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(new ItemGetRequest { Page = 0 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
+    public async Task ItemGet_PageAboveMaximum_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(new ItemGetRequest { Page = MaxPage + 1 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
+    public async Task ItemGet_UndefinedPageSize_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(new ItemGetRequest { PageSize = UndefinedPageSize })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", UndefinedPageSizeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
     }
 
     [Test]

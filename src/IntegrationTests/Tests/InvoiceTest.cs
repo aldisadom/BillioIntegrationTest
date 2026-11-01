@@ -991,6 +991,82 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_LastAllowedPage_Success()
+    {
+        InvoiceGetRequest request = new() { Page = MaxPage, PageSize = PageSize.p50 };
+
+        InvoiceListResponse response = await _invoiceClient.Get(request);
+
+        // TotalCount depends on which invoice tests ran first; no run saves enough invoices to reach this page
+        await Assert.That(response.Invoices)
+            .IsNotNull()
+            .And.IsEmpty();
+        await Assert.That(response.Page).IsEqualTo(request.Page);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_PageZero_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { Page = 0 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_PageAboveMaximum_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { Page = MaxPage + 1 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_UndefinedPageSize_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { PageSize = UndefinedPageSize })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", UndefinedPageSizeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_EmptyUserId_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { UserId = Guid.Empty })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify valid user Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_EmptySellerId_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { SellerId = Guid.Empty })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify valid seller Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_EmptyCustomerId_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { CustomerId = Guid.Empty })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify valid customer Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
     public async Task Invoice_Prepare_Data()
     {
         foreach (var userEmail in InvoiceTestDataSources.UserEmails())
