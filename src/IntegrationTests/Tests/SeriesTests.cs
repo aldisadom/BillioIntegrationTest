@@ -428,6 +428,16 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
+    public async Task SeriesGet_EmptySellerId_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { SellerId = Guid.Empty })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify valid seller Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
     public async Task SeriesUpdate_EmptyId_Fail()
     {
         SeriesUpdateRequest updateRequest = new() { Id = Guid.Empty, Name = "LX", NextNumber = 1 };

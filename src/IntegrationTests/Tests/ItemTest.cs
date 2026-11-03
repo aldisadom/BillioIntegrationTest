@@ -315,6 +315,16 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
+    public async Task ItemGet_EmptyCustomerId_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(new ItemGetRequest { CustomerId = Guid.Empty })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify valid customer Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
     [MethodDataSource(typeof(ItemTestDataSources), nameof(ItemTestDataSources.AddData))]
     [DisplayName("Item add, valid data: $testCase")]
     public async Task ItemAdd_Valid_Success(TestCaseModel<ItemModel> testCase)
