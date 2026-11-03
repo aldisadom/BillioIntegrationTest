@@ -1,6 +1,7 @@
 ﻿using BillerContracts;
 using BillerContracts.Clients;
 using BillerContracts.Clients.Interfaces;
+using BillerContracts.Enums;
 using BillerContracts.Requests.Customer;
 using BillerContracts.Responses;
 using BillerContracts.Responses.Customer;
@@ -473,6 +474,56 @@ public partial class Tests
         await Assert.That(response.Customers)
             .IsNotNull()
             .And.IsEmpty();
+    }
+
+    [Test]
+    [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
+    public async Task CustomerGet_LastAllowedPage_Success()
+    {
+        CustomerListResponse response = await _customerClient.Get(new CustomerGetRequest { Page = MaxPage, PageSize = PageSize.p50 });
+
+        // Customers aren't paged until BIL-102: the list holds the customers other tests saved, and Page, PageSize and TotalCount aren't set
+        await Assert.That(response.Customers).IsNotNull();
+    }
+
+    [Test]
+    [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
+    public async Task CustomerGet_PageZero_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Get(new CustomerGetRequest { Page = 0 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
+    public async Task CustomerGet_PageAboveMaximum_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Get(new CustomerGetRequest { Page = MaxPage + 1 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
+    public async Task CustomerGet_UndefinedPageSize_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Get(new CustomerGetRequest { PageSize = UndefinedPageSize })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", UndefinedPageSizeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
+    public async Task CustomerGet_EmptySellerId_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Get(new CustomerGetRequest { SellerId = Guid.Empty })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify valid seller Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
     }
 
     [Test]

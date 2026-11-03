@@ -991,6 +991,82 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_LastAllowedPage_Success()
+    {
+        InvoiceGetRequest request = new() { Page = MaxPage, PageSize = PageSize.p50 };
+
+        InvoiceListResponse response = await _invoiceClient.Get(request);
+
+        // TotalCount depends on which invoice tests ran first; no run saves enough invoices to reach this page
+        await Assert.That(response.Invoices)
+            .IsNotNull()
+            .And.IsEmpty();
+        await Assert.That(response.Page).IsEqualTo(request.Page);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_PageZero_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { Page = 0 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_PageAboveMaximum_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { Page = MaxPage + 1 })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_UndefinedPageSize_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { PageSize = UndefinedPageSize })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", UndefinedPageSizeMessage, HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_EmptyUserId_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { UserId = Guid.Empty })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify valid user Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_EmptySellerId_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { SellerId = Guid.Empty })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify valid seller Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
+    public async Task InvoiceGet_EmptyCustomerId_Fail()
+    {
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { CustomerId = Guid.Empty })))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify valid customer Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
     public async Task Invoice_Prepare_Data()
     {
         foreach (var userEmail in InvoiceTestDataSources.UserEmails())
@@ -1427,6 +1503,9 @@ public partial class Tests
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
             .And.HasCount().EqualTo(6);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(6);
+        await Assert.That(listResponse.Page).IsEqualTo(1);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
     }
 
     [Test]
@@ -1444,6 +1523,9 @@ public partial class Tests
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(1);
+        await Assert.That(listResponse.Page).IsEqualTo(request.Page);
+        await Assert.That(listResponse.PageSize).IsEqualTo(request.PageSize);
 
         await Assert.That(listResponse.Invoices[0].CustomerId).IsEquivalentTo(request.CustomerId!.Value);
         await AssertListedInvoiceSeries(listResponse.Invoices[0]);
@@ -1464,12 +1546,50 @@ public partial class Tests
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(request.Page);
+        await Assert.That(listResponse.PageSize).IsEqualTo(request.PageSize);
 
         foreach (var invoice in listResponse.Invoices)
         {
             await Assert.That(invoice.SellerId).IsEquivalentTo(request.SellerId!.Value);
             await AssertListedInvoiceSeries(invoice);
         }
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceDelete_Valid_Success))]
+    [DependsOn(nameof(InvoiceDetailsUpdate_Valid_Success), [typeof(TestCaseModel<InvoiceDetaisUpdateTestModel>)])]
+    public async Task InvoiceGetAllForSeller_PagesOfOne_Success()
+    {
+        var invoiceModel = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().First());
+        // Newest first: every UpdateDetailsData case leaves Invoice 2 created after Invoice 1
+        InvoiceResponse expectedFirst = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().ToArray()[1]);
+        InvoiceResponse expectedSecond = invoiceModel;
+        var firstRequest = new InvoiceGetRequest { SellerId = invoiceModel.SellerId, Page = 1, PageSize = PageSize.p1 };
+        var secondRequest = new InvoiceGetRequest { SellerId = invoiceModel.SellerId, Page = 2, PageSize = PageSize.p1 };
+
+        InvoiceListResponse firstPage = await _invoiceClient.Get(firstRequest);
+        InvoiceListResponse secondPage = await _invoiceClient.Get(secondRequest);
+
+        await Assert.That(firstPage.Invoices)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        await Assert.That(firstPage.TotalCount).IsEqualTo(2);
+        await Assert.That(firstPage.Page).IsEqualTo(1);
+        await Assert.That(firstPage.PageSize).IsEqualTo(PageSize.p1);
+
+        await Assert.That(secondPage.Invoices)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        await Assert.That(secondPage.TotalCount).IsEqualTo(2);
+        await Assert.That(secondPage.Page).IsEqualTo(2);
+        await Assert.That(secondPage.PageSize).IsEqualTo(PageSize.p1);
+
+        await Assert.That(firstPage.Invoices[0].Id).IsEqualTo(expectedFirst.Id);
+        await Assert.That(secondPage.Invoices[0].Id).IsEqualTo(expectedSecond.Id);
+        await AssertListedInvoiceSeries(firstPage.Invoices[0]);
+        await AssertListedInvoiceSeries(secondPage.Invoices[0]);
     }
 
     [Test]
@@ -1487,6 +1607,9 @@ public partial class Tests
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(request.Page);
+        await Assert.That(listResponse.PageSize).IsEqualTo(request.PageSize);
 
         foreach (var invoice in listResponse.Invoices)
         {
@@ -1500,6 +1623,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceUpdateChangeItems_Valid_Success()
     {
@@ -1629,6 +1753,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateStatusData))]
     [DisplayName("Invoice update status, valid data: $testCase")]
@@ -1670,6 +1795,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateStatusDataInvalid))]
     [DisplayName("Invoice update status, invalid data: $testCase")]
@@ -1716,6 +1842,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceShowsCurrentSellerAndCustomer_Valid_Success()
     {
@@ -1767,6 +1894,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceKeepsItemPriceUntilUpdated_Valid_Success()
     {
@@ -1807,6 +1935,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceWithDeletedItem_Valid_Success()
     {
@@ -1826,6 +1955,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task CustomerDelete_WhenHasInvoice_Fail()
     {
@@ -1882,6 +2012,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceNumbering_SeriesRules_Success()
     {
