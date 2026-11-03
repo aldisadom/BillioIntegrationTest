@@ -264,16 +264,23 @@ public partial class Tests
         await Assert.That(listResponse.Users)
             .IsNotNull()
             .And.IsEmpty();
+        await Assert.That(listResponse.TotalCount).IsEqualTo(0);
     }
 
     [Test]
     [DependsOn(nameof(User_BeforeTests_DBEmpty))]
     public async Task UserGet_LastAllowedPage_Success()
     {
-        UserListResponse listResponse = await _userClient.Get(new UserGetRequest { Page = MaxPage, PageSize = PageSize.p50 });
+        UserGetRequest request = new() { Page = MaxPage, PageSize = PageSize.p50 };
 
-        // Users aren't paged until BIL-102: the list holds the users other tests saved, and Page, PageSize and TotalCount aren't set
-        await Assert.That(listResponse.Users).IsNotNull();
+        UserListResponse listResponse = await _userClient.Get(request);
+
+        // TotalCount isn't checked: users are being added while this runs
+        await Assert.That(listResponse.Users)
+            .IsNotNull()
+            .And.IsEmpty();
+        await Assert.That(listResponse.Page).IsEqualTo(request.Page);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]
@@ -407,6 +414,29 @@ public partial class Tests
         await Assert.That(listResponse.Users)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(1);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
+    }
+
+    [Test]
+    [DependsOn(nameof(UserDelete_Valid_Success))]
+    [DependsOn(nameof(UserUpdate_Valid_Success), [typeof(string)])]
+    public async Task UserGetAll_SecondPage_Success()
+    {
+        UserGetRequest request = new() { Page = 2, PageSize = PageSize.p1 };
+
+        UserListResponse listResponse = await _userClient.Get(request);
+
+        // Users are ordered by last name: Snow, then Targaryen
+        Guid expectedId = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id;
+        await Assert.That(listResponse.Users)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.Users[0].Id).IsEqualTo(expectedId);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(2);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
     }
 
     [Test]

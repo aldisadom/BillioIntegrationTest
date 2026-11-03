@@ -474,16 +474,23 @@ public partial class Tests
         await Assert.That(response.Customers)
             .IsNotNull()
             .And.IsEmpty();
+        await Assert.That(response.TotalCount).IsEqualTo(0);
     }
 
     [Test]
     [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
     public async Task CustomerGet_LastAllowedPage_Success()
     {
-        CustomerListResponse response = await _customerClient.Get(new CustomerGetRequest { Page = MaxPage, PageSize = PageSize.p50 });
+        CustomerGetRequest request = new() { Page = MaxPage, PageSize = PageSize.p50 };
 
-        // Customers aren't paged until BIL-102: the list holds the customers other tests saved, and Page, PageSize and TotalCount aren't set
-        await Assert.That(response.Customers).IsNotNull();
+        CustomerListResponse response = await _customerClient.Get(request);
+
+        // TotalCount isn't checked: customers are being added while this runs
+        await Assert.That(response.Customers)
+            .IsNotNull()
+            .And.IsEmpty();
+        await Assert.That(response.Page).IsEqualTo(request.Page);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]
@@ -674,9 +681,34 @@ public partial class Tests
         await Assert.That(listResponse.Customers)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(1);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
 
         foreach (var customer in listResponse.Customers)
             await AssertListedCustomerSeries(customer);
+    }
+
+    [Test]
+    [DependsOn(nameof(CustomerDelete_Valid_Success))]
+    [DependsOn(nameof(CustomerUpdate_Valid_Success), [typeof(string)])]
+    public async Task CustomerGetAll_SecondPage_Success()
+    {
+        CustomerGetRequest request = new() { Page = 2, PageSize = PageSize.p1 };
+
+        CustomerListResponse listResponse = await _customerClient.Get(request);
+
+        // Customers are ordered by company name: Faceless Freight, then Lannister Libations
+        CustomerModel expected = CustomerTestDataSources.SavedCustomers[CustomerTestDataSources.Emails().First()];
+        await Assert.That(listResponse.Customers)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.Customers[0].Id).IsEqualTo(expected.Id);
+        await Assert.That(listResponse.Customers[0].SellerId).IsEqualTo(SellerTestDataSources.SavedSellers[expected.SellerEmail].Id);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(2);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
+        await AssertListedCustomerSeries(listResponse.Customers[0]);
     }
 
     [Test]
@@ -694,6 +726,7 @@ public partial class Tests
         await Assert.That(listResponse.Customers)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(1);
 
         await Assert.That(listResponse.Customers[0].SellerId).IsEquivalentTo(request.SellerId!.Value);
         await AssertListedCustomerSeries(listResponse.Customers[0]);

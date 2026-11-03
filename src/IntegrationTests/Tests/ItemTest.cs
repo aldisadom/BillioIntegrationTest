@@ -271,16 +271,23 @@ public partial class Tests
         await Assert.That(response.Items)
             .IsNotNull()
             .And.IsEmpty();
+        await Assert.That(response.TotalCount).IsEqualTo(0);
     }
 
     [Test]
     [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
     public async Task ItemGet_LastAllowedPage_Success()
     {
-        ItemListResponse response = await _itemClient.Get(new ItemGetRequest { Page = MaxPage, PageSize = PageSize.p50 });
+        ItemGetRequest request = new() { Page = MaxPage, PageSize = PageSize.p50 };
 
-        // Items aren't paged until BIL-102: the list holds the items other tests saved, and Page, PageSize and TotalCount aren't set
-        await Assert.That(response.Items).IsNotNull();
+        ItemListResponse response = await _itemClient.Get(request);
+
+        // TotalCount isn't checked: items are being added while this runs
+        await Assert.That(response.Items)
+            .IsNotNull()
+            .And.IsEmpty();
+        await Assert.That(response.Page).IsEqualTo(request.Page);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]
@@ -428,6 +435,30 @@ public partial class Tests
         await Assert.That(listResponse.Items)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(1);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
+    }
+
+    [Test]
+    [DependsOn(nameof(ItemDelete_Valid_Success))]
+    [DependsOn(nameof(ItemUpdate_Valid_Success), [typeof(string)])]
+    public async Task ItemGetAll_SecondPage_Success()
+    {
+        ItemGetRequest request = new() { Page = 2, PageSize = PageSize.p1 };
+
+        ItemListResponse listResponse = await _itemClient.Get(request);
+
+        // Items are ordered by name: Back stab, then Remove identity
+        ItemModel expected = ItemTestDataSources.SavedItems[ItemTestDataSources.Names().ToArray()[1]];
+        await Assert.That(listResponse.Items)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.Items[0].Id).IsEqualTo(expected.Id);
+        await Assert.That(listResponse.Items[0].CustomerId).IsEqualTo(CustomerTestDataSources.SavedCustomers[expected.CustomerEmail].Id);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(2);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
     }
 
     [Test]
@@ -444,6 +475,7 @@ public partial class Tests
         await Assert.That(listResponse.Items)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(1);
 
         await Assert.That(listResponse.Items[0].CustomerId).IsEquivalentTo(request.CustomerId!.Value);
     }

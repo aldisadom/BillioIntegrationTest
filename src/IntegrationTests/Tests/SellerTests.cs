@@ -520,16 +520,23 @@ public partial class Tests
         await Assert.That(response.Sellers)
             .IsNotNull()
             .And.IsEmpty();
+        await Assert.That(response.TotalCount).IsEqualTo(0);
     }
 
     [Test]
     [DependsOn(nameof(Seller_BeforeTests_DBEmpty))]
     public async Task SellerGet_LastAllowedPage_Success()
     {
-        SellerListResponse response = await _sellerClient.Get(new SellerGetRequest { Page = MaxPage, PageSize = PageSize.p50 });
+        SellerGetRequest request = new() { Page = MaxPage, PageSize = PageSize.p50 };
 
-        // Sellers aren't paged until BIL-102: the list holds the sellers other tests saved, and Page, PageSize and TotalCount aren't set
-        await Assert.That(response.Sellers).IsNotNull();
+        SellerListResponse response = await _sellerClient.Get(request);
+
+        // TotalCount isn't checked: sellers are being added while this runs
+        await Assert.That(response.Sellers)
+            .IsNotNull()
+            .And.IsEmpty();
+        await Assert.That(response.Page).IsEqualTo(request.Page);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]
@@ -719,6 +726,30 @@ public partial class Tests
         await Assert.That(listResponse.Sellers)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(1);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
+    }
+
+    [Test]
+    [DependsOn(nameof(SellerDelete_Valid_Success))]
+    [DependsOn(nameof(SellerUpdate_Valid_Success), [typeof(string)])]
+    public async Task SellerGetAll_SecondPage_Success()
+    {
+        SellerGetRequest request = new() { Page = 2, PageSize = PageSize.p1 };
+
+        SellerListResponse listResponse = await _sellerClient.Get(request);
+
+        // Sellers are ordered by company name: Dragons Delight, then Stark Supply Co
+        SellerModel expected = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().ToArray()[1]];
+        await Assert.That(listResponse.Sellers)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.Sellers[0].Id).IsEqualTo(expected.Id);
+        await Assert.That(listResponse.Sellers[0].UserId).IsEqualTo(UserTestDataSources.SavedUsers[expected.UserEmail].Id);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(2);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
     }
 
     [Test]
@@ -735,6 +766,7 @@ public partial class Tests
         await Assert.That(listResponse.Sellers)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(1);
 
         await Assert.That(listResponse.Sellers[0].UserId).IsEquivalentTo(request.UserId.Value);
     }
