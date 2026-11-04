@@ -703,8 +703,17 @@ public partial class Tests
         await Assert.That(listResponse.Customers)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
-        await Assert.That(listResponse.Customers[0].Id).IsEqualTo(expected.Id);
-        await Assert.That(listResponse.Customers[0].SellerId).IsEqualTo(SellerTestDataSources.SavedSellers[expected.SellerEmail].Id);
+        // CustomerUpdate_Valid_Success added "_new" to every text field and moved the customer to another series
+        CustomerResponse listed = listResponse.Customers[0];
+        await Assert.That(listed.Id).IsEqualTo(expected.Id);
+        await Assert.That(listed.SellerId).IsEqualTo(SellerTestDataSources.SavedSellers[expected.SellerEmail].Id);
+        await Assert.That(listed.Email).IsEqualTo(expected.Email + "_new");
+        await Assert.That(listed.CompanyName).IsEqualTo(expected.CompanyName + "_new");
+        await Assert.That(listed.CompanyNumber).IsEqualTo(expected.CompanyNumber + "_new");
+        await Assert.That(listed.Street).IsEqualTo(expected.Street + "_new");
+        await Assert.That(listed.City).IsEqualTo(expected.City + "_new");
+        await Assert.That(listed.State).IsEqualTo(expected.State + "_new");
+        await Assert.That(listed.Phone).IsEqualTo(expected.Phone + "_new");
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(2);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);

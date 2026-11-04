@@ -977,9 +977,17 @@ public partial class Tests
     }
 
     [Test]
-    [DependsOn(nameof(ItemGetAll_Valid_Success))]
-    [DependsOn(nameof(CustomerGetAll_Valid_Success))]
-    [DependsOn(nameof(CustomerGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(UserGetAll_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(UserGetAll_SecondPage_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(SellerGetAll_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(SellerGetAllForUser_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(SellerGetAll_SecondPage_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(CustomerGetAll_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(CustomerGetAllForSeller_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(CustomerGetAll_SecondPage_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(ItemGetAll_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(ItemGetAllForCustomer_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(ItemGetAll_SecondPage_Success), ProceedOnFailure = true)]
     public async Task Invoice_BeforeTests_DBEmpty()
     {
         InvoiceListResponse response = await _invoiceClient.Get();

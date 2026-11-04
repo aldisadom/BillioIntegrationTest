@@ -429,11 +429,15 @@ public partial class Tests
         UserListResponse listResponse = await _userClient.Get(request);
 
         // Users are ordered by last name: Snow, then Targaryen
-        Guid expectedId = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()].Id;
+        UserModel expected = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()];
         await Assert.That(listResponse.Users)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
-        await Assert.That(listResponse.Users[0].Id).IsEqualTo(expectedId);
+        // UserUpdate_Valid_Success added "_new" to the names
+        await Assert.That(listResponse.Users[0].Id).IsEqualTo(expected.Id);
+        await Assert.That(listResponse.Users[0].Email).IsEqualTo(expected.Email);
+        await Assert.That(listResponse.Users[0].Name).IsEqualTo(expected.Name + "_new");
+        await Assert.That(listResponse.Users[0].LastName).IsEqualTo(expected.LastName + "_new");
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(2);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);

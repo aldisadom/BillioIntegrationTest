@@ -454,8 +454,13 @@ public partial class Tests
         await Assert.That(listResponse.Items)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
-        await Assert.That(listResponse.Items[0].Id).IsEqualTo(expected.Id);
-        await Assert.That(listResponse.Items[0].CustomerId).IsEqualTo(CustomerTestDataSources.SavedCustomers[expected.CustomerEmail].Id);
+        // ItemUpdate_Valid_Success added "_new" to the name, 666 to the price and 999 to the quantity
+        ItemResponse listed = listResponse.Items[0];
+        await Assert.That(listed.Id).IsEqualTo(expected.Id);
+        await Assert.That(listed.CustomerId).IsEqualTo(CustomerTestDataSources.SavedCustomers[expected.CustomerEmail].Id);
+        await Assert.That(listed.Name).IsEqualTo(expected.Name + "_new");
+        await Assert.That(listed.Price).IsEquivalentTo(expected.Price + 666);
+        await Assert.That(listed.Quantity).IsEquivalentTo(expected.Quantity + 999);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(2);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
