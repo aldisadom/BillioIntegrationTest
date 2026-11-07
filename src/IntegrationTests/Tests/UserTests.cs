@@ -269,43 +269,6 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(User_BeforeTests_DBEmpty))]
-    public async Task UserGet_LastAllowedPage_Success()
-    {
-        UserGetRequest request = new() { Page = MaxPage, PageSize = PageSize.p50 };
-
-        UserListResponse listResponse = await _userClient.Get(request);
-
-        // Users are being added while this runs, so the last page follows the TotalCount this response saw
-        await Assert.That(listResponse.Users).IsNotNull();
-        await Assert.That(listResponse.Users.Count).IsLessThanOrEqualTo(50);
-        await Assert.That(listResponse.Page).IsEqualTo(LastPage(listResponse.TotalCount, PageSize.p50));
-        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p50);
-    }
-
-    [Test]
-    [DependsOn(nameof(User_BeforeTests_DBEmpty))]
-    public async Task UserGet_NegativePage_ReturnsFirstPage()
-    {
-        UserListResponse response = await _userClient.Get(new UserGetRequest { Page = -1, PageSize = PageSize.p50 });
-
-        await Assert.That(response.Users).IsNotNull();
-        await Assert.That(response.Users.Count).IsLessThanOrEqualTo(50);
-        await Assert.That(response.Page).IsEqualTo(1);
-        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
-    }
-
-    [Test]
-    [DependsOn(nameof(User_BeforeTests_DBEmpty))]
-    public async Task UserGet_PageAboveMaximum_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _userClient.Get(new UserGetRequest { Page = MaxPage + 1 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-    }
-
-    [Test]
-    [DependsOn(nameof(User_BeforeTests_DBEmpty))]
     public async Task UserGet_UndefinedPageSize_Fail()
     {
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _userClient.Get(new UserGetRequest { PageSize = UndefinedPageSize })))!.Error!;
@@ -425,22 +388,47 @@ public partial class Tests
     [DependsOn(nameof(UserUpdate_Valid_Success), [typeof(string)])]
     public async Task UserGetAll_SecondPage_Success()
     {
-        UserGetRequest request = new() { Page = 2, PageSize = PageSize.p1 };
+        UserListResponse listResponse = await _userClient.Get(new UserGetRequest { Page = 2, PageSize = PageSize.p1 });
 
-        UserListResponse listResponse = await _userClient.Get(request);
+        await AssertUserPageOfOne(listResponse, 2);
+    }
 
+    [Test]
+    [DependsOn(nameof(UserDelete_Valid_Success))]
+    [DependsOn(nameof(UserUpdate_Valid_Success), [typeof(string)])]
+    public async Task UserGetAll_PagePastTheLast_ReturnsLastPage()
+    {
+        UserListResponse listResponse = await _userClient.Get(new UserGetRequest { Page = int.MaxValue, PageSize = PageSize.p1 });
+
+        await AssertUserPageOfOne(listResponse, 2);
+    }
+
+    [Test]
+    [DependsOn(nameof(UserDelete_Valid_Success))]
+    [DependsOn(nameof(UserUpdate_Valid_Success), [typeof(string)])]
+    public async Task UserGetAll_NegativePage_ReturnsFirstPage()
+    {
+        UserListResponse listResponse = await _userClient.Get(new UserGetRequest { Page = -1, PageSize = PageSize.p1 });
+
+        await AssertUserPageOfOne(listResponse, 1);
+    }
+
+    // The two saved users, one per page, after UserUpdate_Valid_Success added "_new" to the names
+    private static async Task AssertUserPageOfOne(UserListResponse listResponse, int expectedPage)
+    {
         // Users are ordered by last name: Snow, then Targaryen
-        UserModel expected = UserTestDataSources.SavedUsers[UserTestDataSources.Emails().First()];
+        string email = expectedPage == 1 ? UserTestDataSources.Emails().ToArray()[1] : UserTestDataSources.Emails().First();
+        UserModel expected = UserTestDataSources.SavedUsers[email];
+
         await Assert.That(listResponse.Users)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
-        // UserUpdate_Valid_Success added "_new" to the names
         await Assert.That(listResponse.Users[0].Id).IsEqualTo(expected.Id);
         await Assert.That(listResponse.Users[0].Email).IsEqualTo(expected.Email);
         await Assert.That(listResponse.Users[0].Name).IsEqualTo(expected.Name + "_new");
         await Assert.That(listResponse.Users[0].LastName).IsEqualTo(expected.LastName + "_new");
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
-        await Assert.That(listResponse.Page).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(expectedPage);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
     }
 

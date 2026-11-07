@@ -523,42 +523,6 @@ public partial class Tests
         await Assert.That(response.TotalCount).IsEqualTo(0);
     }
 
-    [Test]
-    [DependsOn(nameof(Seller_BeforeTests_DBEmpty))]
-    public async Task SellerGet_LastAllowedPage_Success()
-    {
-        SellerGetRequest request = new() { Page = MaxPage, PageSize = PageSize.p50 };
-
-        SellerListResponse response = await _sellerClient.Get(request);
-
-        // Sellers are being added while this runs, so the last page follows the TotalCount this response saw
-        await Assert.That(response.Sellers).IsNotNull();
-        await Assert.That(response.Sellers.Count).IsLessThanOrEqualTo(50);
-        await Assert.That(response.Page).IsEqualTo(LastPage(response.TotalCount, PageSize.p50));
-        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
-    }
-
-    [Test]
-    [DependsOn(nameof(Seller_BeforeTests_DBEmpty))]
-    public async Task SellerGet_NegativePage_ReturnsFirstPage()
-    {
-        SellerListResponse response = await _sellerClient.Get(new SellerGetRequest { Page = -1, PageSize = PageSize.p50 });
-
-        await Assert.That(response.Sellers).IsNotNull();
-        await Assert.That(response.Sellers.Count).IsLessThanOrEqualTo(50);
-        await Assert.That(response.Page).IsEqualTo(1);
-        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
-    }
-
-    [Test]
-    [DependsOn(nameof(Seller_BeforeTests_DBEmpty))]
-    public async Task SellerGet_PageAboveMaximum_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _sellerClient.Get(new SellerGetRequest { Page = MaxPage + 1 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-    }
 
     [Test]
     [DependsOn(nameof(Seller_BeforeTests_DBEmpty))]
@@ -737,16 +701,41 @@ public partial class Tests
     [DependsOn(nameof(SellerUpdate_Valid_Success), [typeof(string)])]
     public async Task SellerGetAll_SecondPage_Success()
     {
-        SellerGetRequest request = new() { Page = 2, PageSize = PageSize.p1 };
+        SellerListResponse listResponse = await _sellerClient.Get(new SellerGetRequest { Page = 2, PageSize = PageSize.p1 });
 
-        SellerListResponse listResponse = await _sellerClient.Get(request);
+        await AssertSellerPageOfOne(listResponse, 2);
+    }
 
+    [Test]
+    [DependsOn(nameof(SellerDelete_Valid_Success))]
+    [DependsOn(nameof(SellerUpdate_Valid_Success), [typeof(string)])]
+    public async Task SellerGetAll_PagePastTheLast_ReturnsLastPage()
+    {
+        SellerListResponse listResponse = await _sellerClient.Get(new SellerGetRequest { Page = int.MaxValue, PageSize = PageSize.p1 });
+
+        await AssertSellerPageOfOne(listResponse, 2);
+    }
+
+    [Test]
+    [DependsOn(nameof(SellerDelete_Valid_Success))]
+    [DependsOn(nameof(SellerUpdate_Valid_Success), [typeof(string)])]
+    public async Task SellerGetAll_NegativePage_ReturnsFirstPage()
+    {
+        SellerListResponse listResponse = await _sellerClient.Get(new SellerGetRequest { Page = -1, PageSize = PageSize.p1 });
+
+        await AssertSellerPageOfOne(listResponse, 1);
+    }
+
+    // The two saved sellers, one per page, after SellerUpdate_Valid_Success added "_new" to every text field
+    private static async Task AssertSellerPageOfOne(SellerListResponse listResponse, int expectedPage)
+    {
         // Sellers are ordered by company name: Dragons Delight, then Stark Supply Co
-        SellerModel expected = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().ToArray()[1]];
+        string email = expectedPage == 1 ? SellerTestDataSources.Emails().First() : SellerTestDataSources.Emails().ToArray()[1];
+        SellerModel expected = SellerTestDataSources.SavedSellers[email];
+
         await Assert.That(listResponse.Sellers)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
-        // SellerUpdate_Valid_Success added "_new" to every text field
         SellerResponse listed = listResponse.Sellers[0];
         await Assert.That(listed.Id).IsEqualTo(expected.Id);
         await Assert.That(listed.UserId).IsEqualTo(UserTestDataSources.SavedUsers[expected.UserEmail].Id);
@@ -760,7 +749,7 @@ public partial class Tests
         await Assert.That(listed.BankName).IsEqualTo(expected.BankName + "_new");
         await Assert.That(listed.BankNumber).IsEqualTo(expected.BankNumber + "_new");
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
-        await Assert.That(listResponse.Page).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(expectedPage);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
     }
 
