@@ -18,7 +18,10 @@ using BillerContracts.Responses.User;
 using IntegrationTests.ApiClients;
 using IntegrationTests.Models;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net;
+using System.Text.RegularExpressions;
+using UglyToad.PdfPig;
 
 namespace BillioIntegrationTest.Tests;
 
@@ -756,6 +759,66 @@ public static class InvoiceTestDataSources
                 ExtendedMessage = "Invalid invoice status: 99"
             },
             Data = (InvoiceStatus)99
+        };
+    }
+
+    // The generate tests use an invoice from AddInvoiceWithOwnData(GenerateName): series TYRION, number 1.
+    public const string GenerateName = "Tyrion";
+    public const string GenerateFileName = "TYRION-000001.pdf";
+
+    public const string TitleInvoiceLT = "SĄSKAITA FAKTŪRA";
+    public const string TitleJobDoneActLT = "ATLIKTŲ DARBŲ AKTAS";
+    public const string TitleInvoiceEN = "INVOICE";
+    public const string TitleJobDoneActEN = "WORK COMPLETION CERTIFICATE";
+    public static readonly string[] DocumentTitles = [TitleInvoiceLT, TitleJobDoneActLT, TitleInvoiceEN, TitleJobDoneActEN];
+
+    public static IEnumerable<TestCaseModel<InvoiceGenerateTestModel>> GenerateData()
+    {
+        yield return new()
+        {
+            TestName = "LT invoice",
+            Data = new() { LanguageCode = Language.LT, DocumentType = DocumentType.Invoice, ExpectedTitle = TitleInvoiceLT }
+        };
+        yield return new()
+        {
+            TestName = "LT job done act",
+            Data = new() { LanguageCode = Language.LT, DocumentType = DocumentType.JobDoneAct, ExpectedTitle = TitleJobDoneActLT }
+        };
+        yield return new()
+        {
+            TestName = "EN invoice",
+            Data = new() { LanguageCode = Language.EN, DocumentType = DocumentType.Invoice, ExpectedTitle = TitleInvoiceEN }
+        };
+        yield return new()
+        {
+            TestName = "EN job done act",
+            Data = new() { LanguageCode = Language.EN, DocumentType = DocumentType.JobDoneAct, ExpectedTitle = TitleJobDoneActEN }
+        };
+    }
+
+    public static IEnumerable<TestCaseError<InvoiceGenerateTestModel>> GenerateDataInvalid()
+    {
+        yield return new()
+        {
+            TestName = "Undefined language",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "The value '99' is invalid."
+            },
+            Data = new() { LanguageCode = (Language)99, DocumentType = DocumentType.Invoice }
+        };
+        yield return new()
+        {
+            TestName = "Undefined document type",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "The value '99' is invalid."
+            },
+            Data = new() { LanguageCode = Language.LT, DocumentType = (DocumentType)99 }
         };
     }
 }
@@ -2285,5 +2348,166 @@ public partial class Tests
             if (succeeded && failures.Count > 0)
                 throw new AggregateException("Clean-up failed", failures);
         }
+    }
+
+    private static Guid _generateInvoiceId;
+    private static SellerResponse _generateSeller = new();
+    private static CustomerResponse _generateCustomer = new();
+    private static ItemResponse _generateItem = new();
+    private static InvoiceAddRequest _generateRequest = new();
+
+    // Generates the PDF and returns the text of all its pages.
+    private static async Task<string> GeneratePdfText(Guid invoiceId, Language languageCode, DocumentType documentType)
+    {
+        FileDownloadResponse file = await _invoiceClient.GeneratePDF(new InvoiceGenerateRequest
+        {
+            Id = invoiceId,
+            LanguageCode = languageCode,
+            DocumentType = documentType
+        });
+
+        await Assert.That(file.ContentType).IsEqualTo("application/pdf");
+        await Assert.That(file.FileName).IsEqualTo(InvoiceTestDataSources.GenerateFileName);
+
+        using MemoryStream content = new();
+        await file.Content.CopyToAsync(content);
+        content.Position = 0;
+        using PdfDocument pdf = PdfDocument.Open(content);
+
+        return string.Join("\n", pdf.GetPages().Select(page => string.Join(" ", page.GetWords().Select(word => word.Text))));
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
+    public async Task InvoiceGenerate_Prepare_Data()
+    {
+        var (seller, customer, item, request, invoiceId) = await AddInvoiceWithOwnData(InvoiceTestDataSources.GenerateName);
+        _generateInvoiceId = invoiceId;
+        _generateSeller = seller;
+        _generateCustomer = customer;
+        _generateItem = item;
+        _generateRequest = request;
+
+        await AssertOwnInvoice(await GetInvoice(invoiceId), invoiceId, request, customer);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Prepare_Data))]
+    [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.GenerateData))]
+    public async Task InvoiceGenerate_Valid_Success(TestCaseModel<InvoiceGenerateTestModel> testCase)
+    {
+        string text = await GeneratePdfText(_generateInvoiceId, testCase.Data.LanguageCode, testCase.Data.DocumentType);
+
+        await Assert.That(text).Contains(testCase.Data.ExpectedTitle);
+        foreach (string otherTitle in InvoiceTestDataSources.DocumentTitles.Where(t => t != testCase.Data.ExpectedTitle))
+            await Assert.That(text).DoesNotContain(otherTitle);
+
+        InvoiceItemRequest line = _generateRequest.Items[0];
+        decimal total = _generateItem.Price * line.Quantity;
+        string seriesAndNumber = $@"(^|\s){Regex.Escape(_generateCustomer.SeriesName)} \S+ 000001(\s|$)";
+        await Assert.That(Regex.IsMatch(text, seriesAndNumber)).IsTrue();
+        await Assert.That(text).Contains(_generateSeller.CompanyName);
+        await Assert.That(text).Contains(_generateCustomer.CompanyName);
+        await Assert.That(text).Contains($"{_generateItem.Name} ({line.Comments})");
+        await Assert.That(text).Contains($": {total.ToString("0.##", CultureInfo.InvariantCulture)}€");
+        await Assert.That(text).Contains(_generateRequest.Comments!);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Valid_Success), [typeof(TestCaseModel<InvoiceGenerateTestModel>)], ProceedOnFailure = true)]
+    [DependsOn(nameof(InvoiceGenerate_Invalid_Fail), [typeof(TestCaseError<InvoiceGenerateTestModel>)], ProceedOnFailure = true)]
+    [DependsOn(nameof(InvoiceGenerate_EmptyId_Fail), ProceedOnFailure = true)]
+    [DependsOn(nameof(InvoiceGenerate_NotFound_Fail), ProceedOnFailure = true)]
+    public async Task InvoiceGenerate_AfterItemEdit_PdfUnchanged()
+    {
+        bool succeeded = false;
+        try
+        {
+            List<(Language, DocumentType)> documents =
+                [.. InvoiceTestDataSources.GenerateData().Select(c => (c.Data.LanguageCode, c.Data.DocumentType))];
+
+            List<string> before = [];
+            foreach (var (language, documentType) in documents)
+                before.Add(await GeneratePdfText(_generateInvoiceId, language, documentType));
+
+            ItemUpdateRequest itemUpdate = new()
+            {
+                Id = _generateItem.Id,
+                Name = _generateItem.Name + "_new",
+                Price = _generateItem.Price + 5,
+                Quantity = _generateItem.Quantity
+            };
+            await _itemClient.Update(itemUpdate);
+
+            ItemResponse updatedItem = await _itemClient.Get(_generateItem.Id);
+            await Assert.That(updatedItem.Name).IsEqualTo(itemUpdate.Name);
+            await Assert.That(updatedItem.Price).IsEqualTo(itemUpdate.Price);
+
+            string oldLine = $"{_generateItem.Name} ({_generateRequest.Items[0].Comments})";
+            for (int i = 0; i < documents.Count; i++)
+            {
+                string after = await GeneratePdfText(_generateInvoiceId, documents[i].Item1, documents[i].Item2);
+                await Assert.That(after).IsEqualTo(before[i]);
+                await Assert.That(after).Contains(oldLine);
+                await Assert.That(after).DoesNotContain(itemUpdate.Name);
+            }
+
+            succeeded = true;
+        }
+        finally
+        {
+            List<Func<Task>> steps = [];
+            if (_generateInvoiceId != Guid.Empty)
+                steps.Add(() => _invoiceClient.Delete(_generateInvoiceId));
+
+            List<Exception> failures = await CleanUp(steps);
+            if (succeeded && failures.Count > 0)
+                throw new AggregateException("Clean-up failed", failures);
+        }
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Prepare_Data))]
+    [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.GenerateDataInvalid))]
+    public async Task InvoiceGenerate_Invalid_Fail(TestCaseError<InvoiceGenerateTestModel> testCase)
+    {
+        InvoiceGenerateRequest request = new()
+        {
+            Id = _generateInvoiceId,
+            LanguageCode = testCase.Data.LanguageCode,
+            DocumentType = testCase.Data.DocumentType
+        };
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.GeneratePDF(request)))!.Error!;
+
+        await testCase.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Prepare_Data))]
+    public async Task InvoiceGenerate_EmptyId_Fail()
+    {
+        InvoiceGenerateRequest request = new() { Id = Guid.Empty };
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.GeneratePDF(request)))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify invoice Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Prepare_Data))]
+    public async Task InvoiceGenerate_NotFound_Fail()
+    {
+        InvoiceGenerateRequest request = new() { Id = Guid.NewGuid() };
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.GeneratePDF(request)))!.Error!;
+
+        ErrorModel expectedError = new("Entity not found", $"Invoice:{request.Id} not found", HttpStatusCode.NotFound);
+        await expectedError.CheckErrors(error);
     }
 }
