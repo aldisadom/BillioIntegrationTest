@@ -282,22 +282,23 @@ public partial class Tests
 
         ItemListResponse response = await _itemClient.Get(request);
 
-        // TotalCount isn't checked: items are being added while this runs
-        await Assert.That(response.Items)
-            .IsNotNull()
-            .And.IsEmpty();
-        await Assert.That(response.Page).IsEqualTo(request.Page);
+        // Items are being added while this runs, so the last page follows the TotalCount this response saw
+        await Assert.That(response.Items).IsNotNull();
+        await Assert.That(response.Items.Count).IsLessThanOrEqualTo(50);
+        await Assert.That(response.Page).IsEqualTo(LastPage(response.TotalCount, PageSize.p50));
         await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]
     [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
-    public async Task ItemGet_PageZero_Fail()
+    public async Task ItemGet_NegativePage_ReturnsFirstPage()
     {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(new ItemGetRequest { Page = 0 })))!.Error!;
+        ItemListResponse response = await _itemClient.Get(new ItemGetRequest { Page = -1, PageSize = PageSize.p50 });
 
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
+        await Assert.That(response.Items).IsNotNull();
+        await Assert.That(response.Items.Count).IsLessThanOrEqualTo(50);
+        await Assert.That(response.Page).IsEqualTo(1);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]

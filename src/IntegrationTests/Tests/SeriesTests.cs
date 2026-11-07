@@ -398,12 +398,15 @@ public partial class Tests
 
         SeriesListResponse listResponse = await _seriesClient.Get(request);
 
+        // A page past the last one answers with the last page: both series fit on page 1, "LX" second by name
         await Assert.That(listResponse.Series)
             .IsNotNull()
-            .And.IsEmpty();
+            .And.HasCount().EqualTo(2);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
-        await Assert.That(listResponse.Page).IsEqualTo(request.Page);
+        await Assert.That(listResponse.Page).IsEqualTo(1);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p50);
+        await Assert.That(listResponse.Series[1].Id).IsEqualTo(SeriesTestDataSources.SavedSeries["LX"].Id);
+        await Assert.That(listResponse.Series.Select(s => s.SellerId)).All().Satisfy(id => id.IsEqualTo(request.SellerId!.Value));
     }
 
     [Test]
@@ -450,12 +453,14 @@ public partial class Tests
 
     [Test]
     [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
-    public async Task SeriesGet_PageZero_Fail()
+    public async Task SeriesGet_NegativePage_ReturnsFirstPage()
     {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { Page = 0 })))!.Error!;
+        SeriesListResponse response = await _seriesClient.Get(new SeriesGetRequest { Page = -1, PageSize = PageSize.p50 });
 
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
+        await Assert.That(response.Series).IsNotNull();
+        await Assert.That(response.Series.Count).IsLessThanOrEqualTo(50);
+        await Assert.That(response.Page).IsEqualTo(1);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]

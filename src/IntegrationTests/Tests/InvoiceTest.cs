@@ -1005,22 +1005,23 @@ public partial class Tests
 
         InvoiceListResponse response = await _invoiceClient.Get(request);
 
-        // TotalCount depends on which invoice tests ran first; no run saves enough invoices to reach this page
-        await Assert.That(response.Invoices)
-            .IsNotNull()
-            .And.IsEmpty();
-        await Assert.That(response.Page).IsEqualTo(request.Page);
+        // TotalCount depends on which invoice tests ran first, so the last page follows the TotalCount this response saw
+        await Assert.That(response.Invoices).IsNotNull();
+        await Assert.That(response.Invoices.Count).IsLessThanOrEqualTo(50);
+        await Assert.That(response.Page).IsEqualTo(LastPage(response.TotalCount, PageSize.p50));
         await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]
     [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
-    public async Task InvoiceGet_PageZero_Fail()
+    public async Task InvoiceGet_NegativePage_ReturnsFirstPage()
     {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { Page = 0 })))!.Error!;
+        InvoiceListResponse response = await _invoiceClient.Get(new InvoiceGetRequest { Page = -1, PageSize = PageSize.p50 });
 
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
+        await Assert.That(response.Invoices).IsNotNull();
+        await Assert.That(response.Invoices.Count).IsLessThanOrEqualTo(50);
+        await Assert.That(response.Page).IsEqualTo(1);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]

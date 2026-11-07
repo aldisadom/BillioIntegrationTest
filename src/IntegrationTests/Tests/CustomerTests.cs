@@ -485,22 +485,23 @@ public partial class Tests
 
         CustomerListResponse response = await _customerClient.Get(request);
 
-        // TotalCount isn't checked: customers are being added while this runs
-        await Assert.That(response.Customers)
-            .IsNotNull()
-            .And.IsEmpty();
-        await Assert.That(response.Page).IsEqualTo(request.Page);
+        // Customers are being added while this runs, so the last page follows the TotalCount this response saw
+        await Assert.That(response.Customers).IsNotNull();
+        await Assert.That(response.Customers.Count).IsLessThanOrEqualTo(50);
+        await Assert.That(response.Page).IsEqualTo(LastPage(response.TotalCount, PageSize.p50));
         await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]
     [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
-    public async Task CustomerGet_PageZero_Fail()
+    public async Task CustomerGet_NegativePage_ReturnsFirstPage()
     {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Get(new CustomerGetRequest { Page = 0 })))!.Error!;
+        CustomerListResponse response = await _customerClient.Get(new CustomerGetRequest { Page = -1, PageSize = PageSize.p50 });
 
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
+        await Assert.That(response.Customers).IsNotNull();
+        await Assert.That(response.Customers.Count).IsLessThanOrEqualTo(50);
+        await Assert.That(response.Page).IsEqualTo(1);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
     }
 
     [Test]
