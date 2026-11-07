@@ -6,7 +6,6 @@ public record InvoiceGenerateTestModel
 {
     public Language LanguageCode { get; set; }
     public DocumentType DocumentType { get; set; }
-    public string ExpectedTitle { get; set; } = string.Empty;
 }
 
 public record InvoiceTestModel
