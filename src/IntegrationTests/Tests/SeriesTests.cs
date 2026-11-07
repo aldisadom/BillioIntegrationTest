@@ -362,58 +362,48 @@ public partial class Tests
     [DependsOn(nameof(SeriesUpdate_Valid_Success))]
     public async Task SeriesGetAllForSeller_SecondPage_Success()
     {
-        SeriesGetRequest request = new()
-        {
-            SellerId = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().First()].Id,
-            Page = 2,
-            PageSize = PageSize.p1
-        };
-
-        SeriesListResponse listResponse = await _seriesClient.Get(request);
-
-        SeriesModel expected = SeriesTestDataSources.SavedSeries["LX"];
-        await Assert.That(listResponse.Series)
-            .IsNotNull()
-            .And.HasCount().EqualTo(1);
-        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
-        await Assert.That(listResponse.Page).IsEqualTo(2);
-        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
-        await Assert.That(listResponse.Series[0].Id).IsEqualTo(expected.Id);
-        await Assert.That(listResponse.Series[0].SellerId).IsEqualTo(request.SellerId!.Value);
-        await Assert.That(listResponse.Series[0].Name).IsEqualTo(expected.Name);
-        await Assert.That(listResponse.Series[0].NextNumber).IsEqualTo(expected.NextNumber!.Value);
+        await AssertSeriesPageOfOne(page: 2, expectedPage: 2);
     }
 
     [Test]
     [DependsOn(nameof(SeriesDelete_Valid_Success))]
     [DependsOn(nameof(SeriesUpdate_Valid_Success))]
-    public async Task SeriesGetAllForSeller_LastAllowedPage_Success()
+    public async Task SeriesGetAllForSeller_PagePastTheLast_ReturnsLastPage()
+    {
+        await AssertSeriesPageOfOne(page: int.MaxValue, expectedPage: 2);
+    }
+
+    [Test]
+    [DependsOn(nameof(SeriesDelete_Valid_Success))]
+    [DependsOn(nameof(SeriesUpdate_Valid_Success))]
+    public async Task SeriesGetAllForSeller_NegativePage_ReturnsFirstPage()
+    {
+        await AssertSeriesPageOfOne(page: -1, expectedPage: 1);
+    }
+
+    // The first seller's two series, one per page, ordered by name: LL, then LX
+    private async Task AssertSeriesPageOfOne(int page, int expectedPage)
     {
         SeriesGetRequest request = new()
         {
             SellerId = SellerTestDataSources.SavedSellers[SellerTestDataSources.Emails().First()].Id,
-            Page = MaxPage,
-            PageSize = PageSize.p50
+            Page = page,
+            PageSize = PageSize.p1
         };
 
         SeriesListResponse listResponse = await _seriesClient.Get(request);
 
+        SeriesModel expected = SeriesTestDataSources.SavedSeries[expectedPage == 1 ? "LL" : "LX"];
         await Assert.That(listResponse.Series)
             .IsNotNull()
-            .And.IsEmpty();
+            .And.HasCount().EqualTo(1);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
-        await Assert.That(listResponse.Page).IsEqualTo(request.Page);
-        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p50);
-    }
-
-    [Test]
-    [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
-    public async Task SeriesGet_PageAboveMaximum_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { Page = MaxPage + 1 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
+        await Assert.That(listResponse.Page).IsEqualTo(expectedPage);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
+        await Assert.That(listResponse.Series[0].Id).IsEqualTo(expected.Id);
+        await Assert.That(listResponse.Series[0].SellerId).IsEqualTo(request.SellerId!.Value);
+        await Assert.That(listResponse.Series[0].Name).IsEqualTo(expected.Name);
+        await Assert.That(listResponse.Series[0].NextNumber).IsEqualTo(expected.NextNumber!.Value);
     }
 
     [Test]
@@ -445,16 +435,6 @@ public partial class Tests
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Update(updateRequest)))!.Error!;
 
         ErrorModel expectedError = new("Validation failure", "Please specify series Id", HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-    }
-
-    [Test]
-    [DependsOn(nameof(Series_BeforeTests_DBEmpty))]
-    public async Task SeriesGet_PageZero_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _seriesClient.Get(new SeriesGetRequest { Page = 0 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
     }
 

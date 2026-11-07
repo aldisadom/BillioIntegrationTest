@@ -271,37 +271,9 @@ public partial class Tests
         await Assert.That(response.Items)
             .IsNotNull()
             .And.IsEmpty();
+        await Assert.That(response.TotalCount).IsEqualTo(0);
     }
 
-    [Test]
-    [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
-    public async Task ItemGet_LastAllowedPage_Success()
-    {
-        ItemListResponse response = await _itemClient.Get(new ItemGetRequest { Page = MaxPage, PageSize = PageSize.p50 });
-
-        // Items aren't paged until BIL-102: the list holds the items other tests saved, and Page, PageSize and TotalCount aren't set
-        await Assert.That(response.Items).IsNotNull();
-    }
-
-    [Test]
-    [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
-    public async Task ItemGet_PageZero_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(new ItemGetRequest { Page = 0 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-    }
-
-    [Test]
-    [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
-    public async Task ItemGet_PageAboveMaximum_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(new ItemGetRequest { Page = MaxPage + 1 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-    }
 
     [Test]
     [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
@@ -428,6 +400,61 @@ public partial class Tests
         await Assert.That(listResponse.Items)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(1);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
+    }
+
+    [Test]
+    [DependsOn(nameof(ItemDelete_Valid_Success))]
+    [DependsOn(nameof(ItemUpdate_Valid_Success), [typeof(string)])]
+    public async Task ItemGetAll_SecondPage_Success()
+    {
+        ItemListResponse listResponse = await _itemClient.Get(new ItemGetRequest { Page = 2, PageSize = PageSize.p1 });
+
+        await AssertItemPageOfOne(listResponse, 2);
+    }
+
+    [Test]
+    [DependsOn(nameof(ItemDelete_Valid_Success))]
+    [DependsOn(nameof(ItemUpdate_Valid_Success), [typeof(string)])]
+    public async Task ItemGetAll_PagePastTheLast_ReturnsLastPage()
+    {
+        ItemListResponse listResponse = await _itemClient.Get(new ItemGetRequest { Page = int.MaxValue, PageSize = PageSize.p1 });
+
+        await AssertItemPageOfOne(listResponse, 2);
+    }
+
+    [Test]
+    [DependsOn(nameof(ItemDelete_Valid_Success))]
+    [DependsOn(nameof(ItemUpdate_Valid_Success), [typeof(string)])]
+    public async Task ItemGetAll_NegativePage_ReturnsFirstPage()
+    {
+        ItemListResponse listResponse = await _itemClient.Get(new ItemGetRequest { Page = -1, PageSize = PageSize.p1 });
+
+        await AssertItemPageOfOne(listResponse, 1);
+    }
+
+    // The two saved items, one per page, after ItemUpdate_Valid_Success added "_new" to the name,
+    // 666 to the price and 999 to the quantity
+    private static async Task AssertItemPageOfOne(ItemListResponse listResponse, int expectedPage)
+    {
+        // Items are ordered by name: Back stab, then Remove identity
+        string name = expectedPage == 1 ? ItemTestDataSources.Names().First() : ItemTestDataSources.Names().ToArray()[1];
+        ItemModel expected = ItemTestDataSources.SavedItems[name];
+
+        await Assert.That(listResponse.Items)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        ItemResponse listed = listResponse.Items[0];
+        await Assert.That(listed.Id).IsEqualTo(expected.Id);
+        await Assert.That(listed.CustomerId).IsEqualTo(CustomerTestDataSources.SavedCustomers[expected.CustomerEmail].Id);
+        await Assert.That(listed.Name).IsEqualTo(expected.Name + "_new");
+        await Assert.That(listed.Price).IsEquivalentTo(expected.Price + 666);
+        await Assert.That(listed.Quantity).IsEquivalentTo(expected.Quantity + 999);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(expectedPage);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
     }
 
     [Test]
@@ -444,6 +471,7 @@ public partial class Tests
         await Assert.That(listResponse.Items)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(1);
 
         await Assert.That(listResponse.Items[0].CustomerId).IsEquivalentTo(request.CustomerId!.Value);
     }

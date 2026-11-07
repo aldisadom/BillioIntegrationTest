@@ -474,37 +474,9 @@ public partial class Tests
         await Assert.That(response.Customers)
             .IsNotNull()
             .And.IsEmpty();
+        await Assert.That(response.TotalCount).IsEqualTo(0);
     }
 
-    [Test]
-    [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
-    public async Task CustomerGet_LastAllowedPage_Success()
-    {
-        CustomerListResponse response = await _customerClient.Get(new CustomerGetRequest { Page = MaxPage, PageSize = PageSize.p50 });
-
-        // Customers aren't paged until BIL-102: the list holds the customers other tests saved, and Page, PageSize and TotalCount aren't set
-        await Assert.That(response.Customers).IsNotNull();
-    }
-
-    [Test]
-    [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
-    public async Task CustomerGet_PageZero_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Get(new CustomerGetRequest { Page = 0 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-    }
-
-    [Test]
-    [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
-    public async Task CustomerGet_PageAboveMaximum_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Get(new CustomerGetRequest { Page = MaxPage + 1 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-    }
 
     [Test]
     [DependsOn(nameof(Customer_BeforeTests_DBEmpty))]
@@ -674,9 +646,69 @@ public partial class Tests
         await Assert.That(listResponse.Customers)
             .IsNotNull()
             .And.HasCount().EqualTo(2);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(1);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
 
         foreach (var customer in listResponse.Customers)
             await AssertListedCustomerSeries(customer);
+    }
+
+    [Test]
+    [DependsOn(nameof(CustomerDelete_Valid_Success))]
+    [DependsOn(nameof(CustomerUpdate_Valid_Success), [typeof(string)])]
+    public async Task CustomerGetAll_SecondPage_Success()
+    {
+        CustomerListResponse listResponse = await _customerClient.Get(new CustomerGetRequest { Page = 2, PageSize = PageSize.p1 });
+
+        await AssertCustomerPageOfOne(listResponse, 2);
+    }
+
+    [Test]
+    [DependsOn(nameof(CustomerDelete_Valid_Success))]
+    [DependsOn(nameof(CustomerUpdate_Valid_Success), [typeof(string)])]
+    public async Task CustomerGetAll_PagePastTheLast_ReturnsLastPage()
+    {
+        CustomerListResponse listResponse = await _customerClient.Get(new CustomerGetRequest { Page = int.MaxValue, PageSize = PageSize.p1 });
+
+        await AssertCustomerPageOfOne(listResponse, 2);
+    }
+
+    [Test]
+    [DependsOn(nameof(CustomerDelete_Valid_Success))]
+    [DependsOn(nameof(CustomerUpdate_Valid_Success), [typeof(string)])]
+    public async Task CustomerGetAll_NegativePage_ReturnsFirstPage()
+    {
+        CustomerListResponse listResponse = await _customerClient.Get(new CustomerGetRequest { Page = -1, PageSize = PageSize.p1 });
+
+        await AssertCustomerPageOfOne(listResponse, 1);
+    }
+
+    // The two saved customers, one per page, after CustomerUpdate_Valid_Success added "_new" to every text
+    // field and moved each customer to another series
+    private static async Task AssertCustomerPageOfOne(CustomerListResponse listResponse, int expectedPage)
+    {
+        // Customers are ordered by company name: Faceless Freight, then Lannister Libations
+        string email = expectedPage == 1 ? CustomerTestDataSources.Emails().ToArray()[1] : CustomerTestDataSources.Emails().First();
+        CustomerModel expected = CustomerTestDataSources.SavedCustomers[email];
+
+        await Assert.That(listResponse.Customers)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        CustomerResponse listed = listResponse.Customers[0];
+        await Assert.That(listed.Id).IsEqualTo(expected.Id);
+        await Assert.That(listed.SellerId).IsEqualTo(SellerTestDataSources.SavedSellers[expected.SellerEmail].Id);
+        await Assert.That(listed.Email).IsEqualTo(expected.Email + "_new");
+        await Assert.That(listed.CompanyName).IsEqualTo(expected.CompanyName + "_new");
+        await Assert.That(listed.CompanyNumber).IsEqualTo(expected.CompanyNumber + "_new");
+        await Assert.That(listed.Street).IsEqualTo(expected.Street + "_new");
+        await Assert.That(listed.City).IsEqualTo(expected.City + "_new");
+        await Assert.That(listed.State).IsEqualTo(expected.State + "_new");
+        await Assert.That(listed.Phone).IsEqualTo(expected.Phone + "_new");
+        await Assert.That(listResponse.TotalCount).IsEqualTo(2);
+        await Assert.That(listResponse.Page).IsEqualTo(expectedPage);
+        await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
+        await AssertListedCustomerSeries(listResponse.Customers[0]);
     }
 
     [Test]
@@ -694,6 +726,7 @@ public partial class Tests
         await Assert.That(listResponse.Customers)
             .IsNotNull()
             .And.HasCount().EqualTo(1);
+        await Assert.That(listResponse.TotalCount).IsEqualTo(1);
 
         await Assert.That(listResponse.Customers[0].SellerId).IsEquivalentTo(request.SellerId!.Value);
         await AssertListedCustomerSeries(listResponse.Customers[0]);

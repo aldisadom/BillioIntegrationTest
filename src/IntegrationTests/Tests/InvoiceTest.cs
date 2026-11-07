@@ -977,9 +977,25 @@ public partial class Tests
     }
 
     [Test]
-    [DependsOn(nameof(ItemGetAll_Valid_Success))]
-    [DependsOn(nameof(CustomerGetAll_Valid_Success))]
-    [DependsOn(nameof(CustomerGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(UserGetAll_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(UserGetAll_SecondPage_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(UserGetAll_PagePastTheLast_ReturnsLastPage), ProceedOnFailure = true)]
+    [DependsOn(nameof(UserGetAll_NegativePage_ReturnsFirstPage), ProceedOnFailure = true)]
+    [DependsOn(nameof(SellerGetAll_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(SellerGetAllForUser_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(SellerGetAll_SecondPage_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(SellerGetAll_PagePastTheLast_ReturnsLastPage), ProceedOnFailure = true)]
+    [DependsOn(nameof(SellerGetAll_NegativePage_ReturnsFirstPage), ProceedOnFailure = true)]
+    [DependsOn(nameof(CustomerGetAll_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(CustomerGetAllForSeller_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(CustomerGetAll_SecondPage_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(CustomerGetAll_PagePastTheLast_ReturnsLastPage), ProceedOnFailure = true)]
+    [DependsOn(nameof(CustomerGetAll_NegativePage_ReturnsFirstPage), ProceedOnFailure = true)]
+    [DependsOn(nameof(ItemGetAll_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(ItemGetAllForCustomer_Valid_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(ItemGetAll_SecondPage_Success), ProceedOnFailure = true)]
+    [DependsOn(nameof(ItemGetAll_PagePastTheLast_ReturnsLastPage), ProceedOnFailure = true)]
+    [DependsOn(nameof(ItemGetAll_NegativePage_ReturnsFirstPage), ProceedOnFailure = true)]
     public async Task Invoice_BeforeTests_DBEmpty()
     {
         InvoiceListResponse response = await _invoiceClient.Get();
@@ -987,42 +1003,6 @@ public partial class Tests
         await Assert.That(response.Invoices)
             .IsNotNull()
             .And.IsEmpty();
-    }
-
-    [Test]
-    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
-    public async Task InvoiceGet_LastAllowedPage_Success()
-    {
-        InvoiceGetRequest request = new() { Page = MaxPage, PageSize = PageSize.p50 };
-
-        InvoiceListResponse response = await _invoiceClient.Get(request);
-
-        // TotalCount depends on which invoice tests ran first; no run saves enough invoices to reach this page
-        await Assert.That(response.Invoices)
-            .IsNotNull()
-            .And.IsEmpty();
-        await Assert.That(response.Page).IsEqualTo(request.Page);
-        await Assert.That(response.PageSize).IsEqualTo(PageSize.p50);
-    }
-
-    [Test]
-    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
-    public async Task InvoiceGet_PageZero_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { Page = 0 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
-    }
-
-    [Test]
-    [DependsOn(nameof(Invoice_BeforeTests_DBEmpty))]
-    public async Task InvoiceGet_PageAboveMaximum_Fail()
-    {
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Get(new InvoiceGetRequest { Page = MaxPage + 1 })))!.Error!;
-
-        ErrorModel expectedError = new("Validation failure", PageOutOfRangeMessage, HttpStatusCode.BadRequest);
-        await expectedError.CheckErrors(error);
     }
 
     [Test]
@@ -1590,6 +1570,63 @@ public partial class Tests
         await Assert.That(secondPage.Invoices[0].Id).IsEqualTo(expectedSecond.Id);
         await AssertListedInvoiceSeries(firstPage.Invoices[0]);
         await AssertListedInvoiceSeries(secondPage.Invoices[0]);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceDelete_Valid_Success))]
+    [DependsOn(nameof(InvoiceDetailsUpdate_Valid_Success), [typeof(TestCaseModel<InvoiceDetaisUpdateTestModel>)])]
+    public async Task InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage()
+    {
+        await AssertSellerInvoicePageOfOne(page: int.MaxValue, expectedPage: 2);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceDelete_Valid_Success))]
+    [DependsOn(nameof(InvoiceDetailsUpdate_Valid_Success), [typeof(TestCaseModel<InvoiceDetaisUpdateTestModel>)])]
+    public async Task InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage()
+    {
+        await AssertSellerInvoicePageOfOne(page: -1, expectedPage: 1);
+    }
+
+    // The first invoice's seller has two invoices, one per page. Newest first: every UpdateDetailsData
+    // case leaves Invoice 2 created after Invoice 1. Which case ran last decides the dates and comments,
+    // so those aren't checked; every other field still matches the saved invoice.
+    private async Task AssertSellerInvoicePageOfOne(int page, int expectedPage)
+    {
+        InvoiceResponse expected = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().ToArray()[expectedPage == 1 ? 1 : 0]);
+        Guid sellerId = GetInvoiceFromTest(InvoiceTestDataSources.InvoiceKeys().First()).SellerId;
+
+        InvoiceListResponse response = await _invoiceClient.Get(new InvoiceGetRequest { SellerId = sellerId, Page = page, PageSize = PageSize.p1 });
+
+        await Assert.That(response.Invoices)
+            .IsNotNull()
+            .And.HasCount().EqualTo(1);
+        await Assert.That(response.TotalCount).IsEqualTo(2);
+        await Assert.That(response.Page).IsEqualTo(expectedPage);
+        await Assert.That(response.PageSize).IsEqualTo(PageSize.p1);
+
+        InvoiceResponse actual = response.Invoices[0];
+        await Assert.That(actual.Id).IsEqualTo(expected.Id);
+        await Assert.That(actual.UserId).IsEqualTo(expected.UserId);
+        await Assert.That(actual.SeriesId).IsEqualTo(expected.SeriesId);
+        await Assert.That(actual.SeriesName).IsEqualTo(expected.SeriesName);
+        await Assert.That(actual.InvoiceNumber).IsEqualTo(expected.InvoiceNumber);
+        await Assert.That(actual.Status).IsEqualTo(expected.Status);
+        await Assert.That(actual.TotalPrice).IsEquivalentTo(expected.TotalPrice);
+        await Assert.That(actual.SellerId).IsEqualTo(expected.SellerId);
+        await Assert.That(actual.SellerName).IsEqualTo(expected.SellerName);
+        await Assert.That(actual.CustomerId).IsEqualTo(expected.CustomerId);
+        await Assert.That(actual.CustomerName).IsEqualTo(expected.CustomerName);
+        await Assert.That(actual.Items)
+            .IsNotNull()
+            .And.HasCount().EqualTo(expected.Items!.Count);
+        for (int i = 0; i < actual.Items!.Count; i++)
+        {
+            await Assert.That(actual.Items[i].Id).IsEqualTo(expected.Items[i].Id);
+            await Assert.That(actual.Items[i].Name).IsEqualTo(expected.Items[i].Name);
+            await Assert.That(actual.Items[i].Price).IsEquivalentTo(expected.Items[i].Price);
+            await Assert.That(actual.Items[i].Quantity).IsEquivalentTo(expected.Items[i].Quantity);
+        }
     }
 
     [Test]
