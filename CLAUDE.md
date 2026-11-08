@@ -28,6 +28,8 @@ End-to-end tests for the Biller API: TUnit tests that call a running Biller stac
 - Expected values come from the request, the spec, or data the test set up, never from the response being checked.
 - Assert every field of a response, as the existing tests do.
 - A new Biller endpoint or rule gets a success test and one test per error.
+- Don't read PDF content: no PDF parsing library, no asserts on text, titles or totals inside a PDF.
+  A PDF endpoint's test checks the status, `application/pdf`, the file name and the `%PDF-` header.
 - No AutoMapper or any other mapping library, in any Biller repo. Build requests by hand.
 - Plans for work only in this repo go in `docs/plans/BIL-<n>-<slug>.md` here. Plans that change
   several repos live in Biller's `docs/plans/`.

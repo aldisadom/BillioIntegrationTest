@@ -758,6 +758,60 @@ public static class InvoiceTestDataSources
             Data = (InvoiceStatus)99
         };
     }
+
+    // The generate tests use an invoice from AddInvoiceWithOwnData(GenerateName): series TYRION, number 1.
+    public const string GenerateName = "Tyrion";
+    public const string GenerateFileName = "TYRION-000001.pdf";
+
+    public static IEnumerable<TestCaseModel<InvoiceGenerateTestModel>> GenerateData()
+    {
+        yield return new()
+        {
+            TestName = "LT invoice",
+            Data = new() { LanguageCode = Language.LT, DocumentType = DocumentType.Invoice }
+        };
+        yield return new()
+        {
+            TestName = "LT job done act",
+            Data = new() { LanguageCode = Language.LT, DocumentType = DocumentType.JobDoneAct }
+        };
+        yield return new()
+        {
+            TestName = "EN invoice",
+            Data = new() { LanguageCode = Language.EN, DocumentType = DocumentType.Invoice }
+        };
+        yield return new()
+        {
+            TestName = "EN job done act",
+            Data = new() { LanguageCode = Language.EN, DocumentType = DocumentType.JobDoneAct }
+        };
+    }
+
+    public static IEnumerable<TestCaseError<InvoiceGenerateTestModel>> GenerateDataInvalid()
+    {
+        yield return new()
+        {
+            TestName = "Undefined language",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "The value '99' is invalid."
+            },
+            Data = new() { LanguageCode = (Language)99, DocumentType = DocumentType.Invoice }
+        };
+        yield return new()
+        {
+            TestName = "Undefined document type",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "The value '99' is invalid."
+            },
+            Data = new() { LanguageCode = Language.LT, DocumentType = (DocumentType)99 }
+        };
+    }
 }
 
 public partial class Tests
@@ -2285,5 +2339,98 @@ public partial class Tests
             if (succeeded && failures.Count > 0)
                 throw new AggregateException("Clean-up failed", failures);
         }
+    }
+
+    private static Guid _generateInvoiceId;
+
+    [Test]
+    [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
+    public async Task InvoiceGenerate_Prepare_Data()
+    {
+        var (_, customer, _, request, invoiceId) = await AddInvoiceWithOwnData(InvoiceTestDataSources.GenerateName);
+        _generateInvoiceId = invoiceId;
+
+        await AssertOwnInvoice(await GetInvoice(invoiceId), invoiceId, request, customer);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Prepare_Data))]
+    [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.GenerateData))]
+    public async Task InvoiceGenerate_Valid_Success(TestCaseModel<InvoiceGenerateTestModel> testCase)
+    {
+        FileDownloadResponse file = await _invoiceClient.GeneratePDF(new InvoiceGenerateRequest
+        {
+            Id = _generateInvoiceId,
+            LanguageCode = testCase.Data.LanguageCode,
+            DocumentType = testCase.Data.DocumentType
+        });
+
+        await Assert.That(file.ContentType).IsEqualTo("application/pdf");
+        await Assert.That(file.FileName).IsEqualTo(InvoiceTestDataSources.GenerateFileName);
+
+        using MemoryStream content = new();
+        await file.Content.CopyToAsync(content);
+        await Assert.That(content.ToArray().Take(5).ToArray()).IsEquivalentTo("%PDF-"u8.ToArray());
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Valid_Success), [typeof(TestCaseModel<InvoiceGenerateTestModel>)], ProceedOnFailure = true)]
+    [DependsOn(nameof(InvoiceGenerate_Invalid_Fail), [typeof(TestCaseError<InvoiceGenerateTestModel>)], ProceedOnFailure = true)]
+    [DependsOn(nameof(InvoiceGenerate_EmptyId_Fail), ProceedOnFailure = true)]
+    [DependsOn(nameof(InvoiceGenerate_NotFound_Fail), ProceedOnFailure = true)]
+    public async Task InvoiceGenerate_CleanUp()
+    {
+        List<Func<Task>> steps = [];
+        if (_generateInvoiceId != Guid.Empty)
+            steps.Add(() => _invoiceClient.Delete(_generateInvoiceId));
+
+        List<Exception> failures = await CleanUp(steps);
+        if (failures.Count > 0)
+            throw new AggregateException("Clean-up failed", failures);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Prepare_Data))]
+    [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.GenerateDataInvalid))]
+    public async Task InvoiceGenerate_Invalid_Fail(TestCaseError<InvoiceGenerateTestModel> testCase)
+    {
+        InvoiceGenerateRequest request = new()
+        {
+            Id = _generateInvoiceId,
+            LanguageCode = testCase.Data.LanguageCode,
+            DocumentType = testCase.Data.DocumentType
+        };
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.GeneratePDF(request)))!.Error!;
+
+        await testCase.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Prepare_Data))]
+    public async Task InvoiceGenerate_EmptyId_Fail()
+    {
+        InvoiceGenerateRequest request = new() { Id = Guid.Empty };
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.GeneratePDF(request)))!.Error!;
+
+        ErrorModel expectedError = new("Validation failure", "Please specify invoice Id", HttpStatusCode.BadRequest);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGenerate_Prepare_Data))]
+    public async Task InvoiceGenerate_NotFound_Fail()
+    {
+        InvoiceGenerateRequest request = new() { Id = Guid.NewGuid() };
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.GeneratePDF(request)))!.Error!;
+
+        ErrorModel expectedError = new("Entity not found", $"Invoice:{request.Id} not found", HttpStatusCode.NotFound);
+        await expectedError.CheckErrors(error);
     }
 }
