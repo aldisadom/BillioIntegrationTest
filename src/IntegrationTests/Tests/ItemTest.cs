@@ -399,7 +399,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Items)
             .IsNotNull()
-            .And.HasCount().EqualTo(2);
+            .And.Count().IsEqualTo(2);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(1);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
@@ -445,7 +445,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Items)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
         ItemResponse listed = listResponse.Items[0];
         await Assert.That(listed.Id).IsEqualTo(expected.Id);
         await Assert.That(listed.CustomerId).IsEqualTo(CustomerTestDataSources.SavedCustomers[expected.CustomerEmail].Id);
@@ -470,7 +470,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Items)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
         await Assert.That(listResponse.TotalCount).IsEqualTo(1);
 
         await Assert.That(listResponse.Items[0].CustomerId).IsEquivalentTo(request.CustomerId!.Value);

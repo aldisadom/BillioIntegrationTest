@@ -341,7 +341,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Series)
             .IsNotNull()
-            .And.HasCount().EqualTo(2);
+            .And.Count().IsEqualTo(2);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(1);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
@@ -396,7 +396,7 @@ public partial class Tests
         SeriesModel expected = SeriesTestDataSources.SavedSeries[expectedPage == 1 ? "LL" : "LX"];
         await Assert.That(listResponse.Series)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(expectedPage);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
