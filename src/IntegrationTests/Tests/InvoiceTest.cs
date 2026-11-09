@@ -1715,6 +1715,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceUpdateChangeItems_Valid_Success()
     {
@@ -1845,6 +1847,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateStatusData))]
     [DisplayName("Invoice update status, valid data: $testCase")]
@@ -1887,6 +1891,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateStatusDataInvalid))]
     [DisplayName("Invoice update status, invalid data: $testCase")]
@@ -1934,6 +1940,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceShowsCurrentSellerAndCustomer_Valid_Success()
     {
@@ -1986,6 +1994,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceKeepsItemPriceUntilUpdated_Valid_Success()
     {
@@ -2027,6 +2037,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceWithDeletedItem_Valid_Success()
     {
@@ -2047,6 +2059,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task CustomerDelete_WhenHasInvoice_Fail()
     {
@@ -2104,6 +2118,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceNumbering_SeriesRules_Success()
     {
@@ -2348,6 +2364,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceGenerate_Prepare_Data()
     {
