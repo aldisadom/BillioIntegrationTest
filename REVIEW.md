@@ -3,6 +3,7 @@
 Failure here looks like:
 - A test passes whatever the API does: no assert on the result, an expected value taken from the response being checked, or a missing `[DependsOn]` so it runs before its data exists.
 - A test leaves data behind, or only passes with data from an earlier run.
+- A new test that reads shared data isn't added to the `[DependsOn]` of every later test that changes or adds that data, so the two can run at the same time. Tests run in parallel; only `[DependsOn]` orders them. Check every test whose `[DependsOn]` list already names the neighbouring read tests (in `InvoiceTest.cs`, the tests that wait for `InvoiceGetAllForSeller_PagesOfOne_Success`). Example: the seller paging tests from BIL-102 were missing from 9 such lists and failed in CI once TUnit 1.x scheduled differently (Biller `docs/review-evals.md` row 15).
 - An error test checks only the status code and not the message.
 - A URL or port is hard-coded in C# code instead of coming from `appsettings.json` (or a `ClientsOptions__*` environment variable).
 - A mapping library (AutoMapper or similar) is added.
