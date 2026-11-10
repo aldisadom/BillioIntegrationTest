@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 env:
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '10.0.x'
   DOTNET_CONFIGURATION: Release
   PROJECT_NAME: BillioIntegrationTest.sln
   API_COMPOSE_DIR: ./Biller
@@ -73,8 +73,10 @@ jobs:
         run: |
           dotnet restore ${{ env.PROJECT_NAME }}
           dotnet build ${{ env.PROJECT_NAME }} --configuration ${{ env.DOTNET_CONFIGURATION }} --no-restore
+          # global.json opts in to the Microsoft.Testing.Platform runner (TUnit 1.x on the .NET 10 SDK),
+          # so TRX comes from --report-trx, not VSTest's --logger.
           dotnet test ${{ env.PROJECT_NAME }} --configuration ${{ env.DOTNET_CONFIGURATION }} --no-build \
-            --logger "trx;LogFileName=integration-results.trx" \
+            --report-trx --report-trx-filename integration-results.trx \
             --results-directory ./TestResults
 
       - name: Upload test results

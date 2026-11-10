@@ -929,7 +929,7 @@ public partial class Tests
     {
         await Assert.That(actual.Items)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
         await Assert.That(actual.Items![0].Id).IsEqualTo(itemId);
         await Assert.That(actual.Items![0].Name).IsEqualTo(name);
         await Assert.That(actual.Items![0].Price).IsEquivalentTo(price);
@@ -1018,7 +1018,7 @@ public partial class Tests
 
         await Assert.That(actual.Items)
             .IsNotNull()
-            .And.HasCount().EqualTo(expected.Items!.Count);
+            .And.Count().IsEqualTo(expected.Items!.Count);
 
         for (int i = 0; i < actual.Items!.Count; i++)
         {
@@ -1247,7 +1247,7 @@ public partial class Tests
 
         await Assert.That(getResponse.Items)
             .IsNotNull()
-            .And.HasCount().EqualTo(invoiceModel.Items.Count);
+            .And.Count().IsEqualTo(invoiceModel.Items.Count);
 
         decimal totalPrice = 0;
         for (int i = 0; i < getResponse.Items!.Count; i++)
@@ -1425,7 +1425,7 @@ public partial class Tests
 
         await Assert.That(getResponse.Items)
             .IsNotNull()
-            .And.HasCount().EqualTo(updateRequest.Items.Count);
+            .And.Count().IsEqualTo(updateRequest.Items.Count);
 
         decimal totalPrice = 0;
         for (int i = 0; i < getResponse.Items!.Count; i++)
@@ -1536,7 +1536,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
-            .And.HasCount().EqualTo(6);
+            .And.Count().IsEqualTo(6);
         await Assert.That(listResponse.TotalCount).IsEqualTo(6);
         await Assert.That(listResponse.Page).IsEqualTo(1);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
@@ -1556,7 +1556,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
         await Assert.That(listResponse.TotalCount).IsEqualTo(1);
         await Assert.That(listResponse.Page).IsEqualTo(request.Page);
         await Assert.That(listResponse.PageSize).IsEqualTo(request.PageSize);
@@ -1579,7 +1579,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
-            .And.HasCount().EqualTo(2);
+            .And.Count().IsEqualTo(2);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(request.Page);
         await Assert.That(listResponse.PageSize).IsEqualTo(request.PageSize);
@@ -1608,14 +1608,14 @@ public partial class Tests
 
         await Assert.That(firstPage.Invoices)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
         await Assert.That(firstPage.TotalCount).IsEqualTo(2);
         await Assert.That(firstPage.Page).IsEqualTo(1);
         await Assert.That(firstPage.PageSize).IsEqualTo(PageSize.p1);
 
         await Assert.That(secondPage.Invoices)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
         await Assert.That(secondPage.TotalCount).IsEqualTo(2);
         await Assert.That(secondPage.Page).IsEqualTo(2);
         await Assert.That(secondPage.PageSize).IsEqualTo(PageSize.p1);
@@ -1654,7 +1654,7 @@ public partial class Tests
 
         await Assert.That(response.Invoices)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
         await Assert.That(response.TotalCount).IsEqualTo(2);
         await Assert.That(response.Page).IsEqualTo(expectedPage);
         await Assert.That(response.PageSize).IsEqualTo(PageSize.p1);
@@ -1673,7 +1673,7 @@ public partial class Tests
         await Assert.That(actual.CustomerName).IsEqualTo(expected.CustomerName);
         await Assert.That(actual.Items)
             .IsNotNull()
-            .And.HasCount().EqualTo(expected.Items!.Count);
+            .And.Count().IsEqualTo(expected.Items!.Count);
         for (int i = 0; i < actual.Items!.Count; i++)
         {
             await Assert.That(actual.Items[i].Id).IsEqualTo(expected.Items[i].Id);
@@ -1697,7 +1697,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Invoices)
             .IsNotNull()
-            .And.HasCount().EqualTo(2);
+            .And.Count().IsEqualTo(2);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(request.Page);
         await Assert.That(listResponse.PageSize).IsEqualTo(request.PageSize);
@@ -1715,6 +1715,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceUpdateChangeItems_Valid_Success()
     {
@@ -1738,7 +1740,7 @@ public partial class Tests
         await Assert.That(getResponse).IsNotNull();
         await Assert.That(getResponse!.Items)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
 
         await Assert.That(getResponse!.Items![0].Id).IsEquivalentTo(item2.Id);
     }
@@ -1845,6 +1847,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateStatusData))]
     [DisplayName("Invoice update status, valid data: $testCase")]
@@ -1887,6 +1891,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     [MethodDataSource(typeof(InvoiceTestDataSources), nameof(InvoiceTestDataSources.UpdateStatusDataInvalid))]
     [DisplayName("Invoice update status, invalid data: $testCase")]
@@ -1934,6 +1940,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceShowsCurrentSellerAndCustomer_Valid_Success()
     {
@@ -1986,6 +1994,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceKeepsItemPriceUntilUpdated_Valid_Success()
     {
@@ -2027,6 +2037,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceWithDeletedItem_Valid_Success()
     {
@@ -2047,6 +2059,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task CustomerDelete_WhenHasInvoice_Fail()
     {
@@ -2104,6 +2118,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceNumbering_SeriesRules_Success()
     {
@@ -2348,6 +2364,8 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
     [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceGenerate_Prepare_Data()
     {

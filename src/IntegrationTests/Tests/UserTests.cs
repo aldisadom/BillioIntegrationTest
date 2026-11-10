@@ -377,7 +377,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Users)
             .IsNotNull()
-            .And.HasCount().EqualTo(2);
+            .And.Count().IsEqualTo(2);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(1);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p25);
@@ -422,7 +422,7 @@ public partial class Tests
 
         await Assert.That(listResponse.Users)
             .IsNotNull()
-            .And.HasCount().EqualTo(1);
+            .And.Count().IsEqualTo(1);
         await Assert.That(listResponse.Users[0].Id).IsEqualTo(expected.Id);
         await Assert.That(listResponse.Users[0].Email).IsEqualTo(expected.Email);
         await Assert.That(listResponse.Users[0].Name).IsEqualTo(expected.Name + "_new");
