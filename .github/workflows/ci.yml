@@ -79,6 +79,6 @@ jobs:
           path: ./TestResults/*.trx
 
       - name: Stop and clean up services
-        if: always()
+        if: always() && hashFiles('Biller/docker-compose.yml') != ''
         working-directory: ${{ env.API_COMPOSE_DIR }}
         run: docker compose -f docker-compose.yml down -v
