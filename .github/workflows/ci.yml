@@ -10,7 +10,7 @@ env:
   DOTNET_VERSION: '10.0.x'
   DOTNET_CONFIGURATION: Release
   PROJECT_NAME: BillioIntegrationTest.sln
-  API_COMPOSE_DIR: ./Biller
+  API_COMPOSE_DIR: Biller
 
 jobs:
   integration-tests:
@@ -79,6 +79,6 @@ jobs:
           path: ./TestResults/*.trx
 
       - name: Stop and clean up services
-        if: always() && hashFiles('Biller/docker-compose.yml') != ''
+        if: always() && hashFiles(format('{0}/docker-compose.yml', env.API_COMPOSE_DIR)) != ''
         working-directory: ${{ env.API_COMPOSE_DIR }}
         run: docker compose -f docker-compose.yml down -v
