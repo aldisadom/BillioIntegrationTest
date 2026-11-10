@@ -13,25 +13,24 @@ env:
   API_COMPOSE_DIR: ./Biller
 
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Build
-        run: dotnet build ${{ env.PROJECT_NAME }} --configuration ${{ env.DOTNET_CONFIGURATION }}
-
   integration-tests:
     name: Integration tests
-    needs: build
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout BillioIntegrationTest repository
         uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # The only build of the tests, before Biller starts, so a compile error fails fast.
+      - name: Build
+        run: |
+          dotnet restore ${{ env.PROJECT_NAME }}
+          dotnet build ${{ env.PROJECT_NAME }} --configuration ${{ env.DOTNET_CONFIGURATION }} --no-restore
 
       - name: Clone Biller repository
         run: |
@@ -44,11 +43,6 @@ jobs:
             echo "No matching Biller branch '$BRANCH', using default branch"
             git clone "$BILLER_REPO" ${{ env.API_COMPOSE_DIR }}
           fi
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Start services
         working-directory: ${{ env.API_COMPOSE_DIR }}
@@ -71,8 +65,6 @@ jobs:
 
       - name: Run integration tests
         run: |
-          dotnet restore ${{ env.PROJECT_NAME }}
-          dotnet build ${{ env.PROJECT_NAME }} --configuration ${{ env.DOTNET_CONFIGURATION }} --no-restore
           # global.json opts in to the Microsoft.Testing.Platform runner (TUnit 1.x on the .NET 10 SDK),
           # so TRX comes from --report-trx, not VSTest's --logger.
           dotnet test ${{ env.PROJECT_NAME }} --configuration ${{ env.DOTNET_CONFIGURATION }} --no-build \
