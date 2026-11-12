@@ -40,6 +40,9 @@ BillioIntegrationTest only, so the plan lives here. Biller doesn't change; CI ru
 4. **The 7 `testCase.Error.ExtendedMessage = ...` lines stay.** With a fresh case per test they change only
    that test's copy, which is what this issue fixes. Rewriting them is not needed.
 5. **No `#pragma` or `NoWarn`.** The warning goes away because the cause does.
+6. **`<WarningsAsErrors>TUnit0046</WarningsAsErrors>` in `IntegrationTests.csproj`** (added after review,
+   owner's decision). A new source that returns the case itself fails the build instead of adding a
+   warning that nothing checks.
 
 ## Dependencies
 
@@ -54,6 +57,11 @@ BillioIntegrationTest only, so the plan lives here. Biller doesn't change; CI ru
    - `dotnet test --list-tests` on the branch: `Discovered 219 tests`, the same 219 names as master.
    - The test stack from Biller master (23 changesets), `run-integration.sh --repeat 3`: each of the
      3 runs `total: 219 failed: 0 succeeded: 219 skipped: 0`.
+4. [x] Review (`/code-review` medium, `REVIEW.md`), 1 round, 3 Nits:
+   - `CLAUDE.md` still said sources return the case: it now says `Func<...>`.
+   - Nothing stopped TUnit0046 from coming back: design decision 6. Checked on a copy: Item `AddData`
+     put back to `IEnumerable<TestCaseModel<ItemModel>>` gives `error TUnit0046` and `Build FAILED.`
+   - Invoice `AddData` reads `DateTime.Now` per case: not changed, see Risk.
 
 ## Risk
 

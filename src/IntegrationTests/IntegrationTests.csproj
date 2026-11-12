@@ -5,6 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <WarningsAsErrors>TUnit0046</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
