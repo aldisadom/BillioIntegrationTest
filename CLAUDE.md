@@ -15,7 +15,10 @@ End-to-end tests for the Biller API: TUnit tests that call a running Biller stac
 - One file per resource in `src/IntegrationTests/Tests/`. They run as one chain with `[DependsOn]`:
   users → sellers → customers → items → invoices.
 - Test data comes from `<Resource>TestDataSources` through `[MethodDataSource]`, as `TestCaseModel<T>`
-  or `TestCaseError<T>` with a `TestName` that shows in the output.
+  or `TestCaseError<T>` with a `TestName` that shows in the output. A source returns
+  `IEnumerable<Func<TestCaseModel<T>>>` (`yield return () => new() { ... }`), so each test gets its own
+  copy of its case; the test method still takes `TestCaseModel<T>`. A source that returns the case
+  itself gives TUnit0046.
 - Entities created by one test are kept in the `Saved<Resource>s` dictionaries for later tests.
 - Error cases check the status code, message and extended message (`ErrorModel`).
 - The HTTP clients come from the `BillerContracts.Clients` NuGet package (same version as BillerFrontEnd),
