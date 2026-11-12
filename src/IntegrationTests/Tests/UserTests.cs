@@ -17,9 +17,9 @@ public static class UserTestDataSources
 {
     public static ConcurrentDictionary<string, UserModel> SavedUsers = new();
 
-    public static IEnumerable<TestCaseModel<UserAddRequest>> AddData()
+    public static IEnumerable<Func<TestCaseModel<UserAddRequest>>> AddData()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = Emails().First(),
             Data = new()
@@ -30,7 +30,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = Emails().ToArray()[1],
             Data = new()
@@ -43,9 +43,9 @@ public static class UserTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseError<UserAddRequest>> AddDataInvalid()
+    public static IEnumerable<Func<TestCaseError<UserAddRequest>>> AddDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "MotherOfDragons@hotmail.com already exists",
             Error = new ErrorModel()
@@ -62,7 +62,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Password too short",
             Error = new ErrorModel()
@@ -79,7 +79,7 @@ public static class UserTestDataSources
                 Password = "passwor"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No email address",
             Error = new ErrorModel()
@@ -95,7 +95,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No name",
             Error = new ErrorModel()
@@ -111,7 +111,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No lastname",
             Error = new ErrorModel()
@@ -129,9 +129,9 @@ public static class UserTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseError<UserLoginRequest>> LoginDataInvalid()
+    public static IEnumerable<Func<TestCaseError<UserLoginRequest>>> LoginDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "Incorrect password for MotherOfDragons@hotmail.com",
             Error = new ErrorModel()
@@ -146,7 +146,7 @@ public static class UserTestDataSources
                 Password = "incorectpassword"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Incorrect email address",
             Error = new ErrorModel()
@@ -161,7 +161,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No email",
             Error = new ErrorModel()
@@ -175,7 +175,7 @@ public static class UserTestDataSources
                 Password = "password"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No password",
             Error = new ErrorModel()
@@ -191,9 +191,9 @@ public static class UserTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseError<UserModel>> UpdateDataInvalid()
+    public static IEnumerable<Func<TestCaseError<UserModel>>> UpdateDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "No name",
             Error = new ErrorModel()
@@ -209,7 +209,7 @@ public static class UserTestDataSources
                 LastName = "Targaryen",
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No last name",
             Error = new ErrorModel()
@@ -225,7 +225,7 @@ public static class UserTestDataSources
                 Name = "Daenerys"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Random Id",
             Error = new ErrorModel()

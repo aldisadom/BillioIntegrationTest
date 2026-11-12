@@ -16,9 +16,9 @@ public static class SeriesTestDataSources
 {
     public static ConcurrentDictionary<string, SeriesModel> SavedSeries = new();
 
-    public static IEnumerable<TestCaseModel<SeriesModel>> AddData()
+    public static IEnumerable<Func<TestCaseModel<SeriesModel>>> AddData()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "LL",
             Data = new()
@@ -27,7 +27,7 @@ public static class SeriesTestDataSources
                 Name = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "LX",
             Data = new()
@@ -36,7 +36,7 @@ public static class SeriesTestDataSources
                 Name = "LX"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "FF",
             Data = new()
@@ -45,7 +45,7 @@ public static class SeriesTestDataSources
                 Name = "FF"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "FX",
             Data = new()
@@ -57,33 +57,33 @@ public static class SeriesTestDataSources
     }
 
     // ExtendedMessage "Change me" is filled in by the test, because it holds ids made during the run.
-    public static IEnumerable<TestCaseError<SeriesModel>> AddDataInvalid()
+    public static IEnumerable<Func<TestCaseError<SeriesModel>>> AddDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "No seller id",
             Error = new("Validation failure", "Please specify seller Id", HttpStatusCode.BadRequest),
             Data = new() { Name = "NS" }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Unknown seller",
             Error = new("Entity not found", "Change me", HttpStatusCode.NotFound),
             Data = new() { SellerEmail = "unknown", Name = "US" }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No name",
             Error = new("Validation failure", "Please specify name", HttpStatusCode.BadRequest),
             Data = new() { SellerEmail = SellerTestDataSources.Emails().First() }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Name longer than 10 characters",
             Error = new("Validation failure", "Please specify name of at most 10 characters", HttpStatusCode.BadRequest),
             Data = new() { SellerEmail = SellerTestDataSources.Emails().First(), Name = "ABCDEFGHIJK" }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Name already used by the seller",
             Error = new("Validation failure", "Change me", HttpStatusCode.BadRequest),
@@ -91,39 +91,39 @@ public static class SeriesTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseError<SeriesModel>> UpdateDataInvalid()
+    public static IEnumerable<Func<TestCaseError<SeriesModel>>> UpdateDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "Random id",
             Error = new("Entity not found", "Change me", HttpStatusCode.NotFound),
             Data = new() { Id = Guid.NewGuid(), Name = "RI", NextNumber = 1 }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No name",
             Error = new("Validation failure", "Please specify name", HttpStatusCode.BadRequest),
             Data = new() { NextNumber = 1 }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Name longer than 10 characters",
             Error = new("Validation failure", "Please specify name of at most 10 characters", HttpStatusCode.BadRequest),
             Data = new() { Name = "ABCDEFGHIJK", NextNumber = 1 }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Next number 0",
             Error = new("Validation failure", "Please specify next number that must be > 0", HttpStatusCode.BadRequest),
             Data = new() { Name = "LX", NextNumber = 0 }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Next number int.MaxValue",
             Error = new("Validation failure", "Please specify next number that must be < 2147483647", HttpStatusCode.BadRequest),
             Data = new() { Name = "LX", NextNumber = int.MaxValue }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Name used by another series of the seller",
             Error = new("Validation failure", "Change me", HttpStatusCode.BadRequest),

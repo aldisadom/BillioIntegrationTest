@@ -16,9 +16,9 @@ public static class ItemTestDataSources
 {
 
     public static ConcurrentDictionary<string, ItemModel> SavedItems = new();
-    public static IEnumerable<TestCaseModel<ItemModel>> AddData()
+    public static IEnumerable<Func<TestCaseModel<ItemModel>>> AddData()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = Names().First(),
             Data = new()
@@ -29,7 +29,7 @@ public static class ItemTestDataSources
                 Quantity = 9999
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = Names().ToArray()[1],
             Data = new()
@@ -41,9 +41,9 @@ public static class ItemTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseError<ItemModel>> AddDataInvalid()
+    public static IEnumerable<Func<TestCaseError<ItemModel>>> AddDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "No name",
             Error = new ErrorModel()
@@ -59,7 +59,7 @@ public static class ItemTestDataSources
                 Quantity = 9999
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No price",
             Error = new ErrorModel()
@@ -75,7 +75,7 @@ public static class ItemTestDataSources
                 Quantity = 9999
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Price is 0",
             Error = new ErrorModel()
@@ -92,7 +92,7 @@ public static class ItemTestDataSources
                 Price = 0
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No quantity",
             Error = new ErrorModel()
@@ -108,7 +108,7 @@ public static class ItemTestDataSources
                 Price = 123.1M
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Quantity -2",
             Error = new ErrorModel()
@@ -125,7 +125,7 @@ public static class ItemTestDataSources
                 Quantity = -2,
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No customer",
             Error = new ErrorModel()
@@ -143,9 +143,9 @@ public static class ItemTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseError<ItemModel>> UpdateDataInvalid()
+    public static IEnumerable<Func<TestCaseError<ItemModel>>> UpdateDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "Random Id",
             Error = new ErrorModel()
@@ -162,7 +162,7 @@ public static class ItemTestDataSources
                 Quantity = 9999
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No name",
             Error = new ErrorModel()
@@ -178,7 +178,7 @@ public static class ItemTestDataSources
                 Quantity = 9999
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No price",
             Error = new ErrorModel()
@@ -194,7 +194,7 @@ public static class ItemTestDataSources
                 Quantity = 9999
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Price = 0",
             Error = new ErrorModel()
@@ -211,7 +211,7 @@ public static class ItemTestDataSources
                 Price = 0
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No quantity",
             Error = new ErrorModel()
@@ -227,7 +227,7 @@ public static class ItemTestDataSources
                 Price = 123.1M
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Quantity = -2",
             Error = new ErrorModel()

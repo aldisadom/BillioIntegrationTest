@@ -102,9 +102,9 @@ public static class InvoiceTestDataSources
         yield return Item1;
     }
 
-    public static IEnumerable<TestCaseModel<InvoiceTestModel>> AddData()
+    public static IEnumerable<Func<TestCaseModel<InvoiceTestModel>>> AddData()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = InvoiceKeys().First().ToString(),
             Data = new()
@@ -131,7 +131,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = DateOnly.FromDateTime(DateTime.Now),
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = InvoiceKeys().ToArray()[1].ToString() + " same 2 items",
             Data = new()
@@ -155,7 +155,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = DateOnly.FromDateTime(DateTime.Now.AddDays(365))
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = InvoiceKeys().ToArray()[2].ToString() + " without comment",
             Data = new()
@@ -176,7 +176,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = DateOnly.FromDateTime(DateTime.Now),
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = InvoiceKeys().ToArray()[3].ToString() + " without items comments",
             Data = new()
@@ -201,9 +201,9 @@ public static class InvoiceTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseError<InvoiceTestModel>> AddDataInvalid()
+    public static IEnumerable<Func<TestCaseError<InvoiceTestModel>>> AddDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "No user id",
             Error = new ErrorModel()
@@ -234,7 +234,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1),
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No seller id",
             Error = new ErrorModel()
@@ -265,7 +265,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Invalid seller id",
             Error = new ErrorModel()
@@ -297,7 +297,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No customer id",
             Error = new ErrorModel()
@@ -328,7 +328,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Invalid customer id",
             Error = new ErrorModel()
@@ -360,7 +360,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No items",
             Error = new ErrorModel()
@@ -379,7 +379,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Empty item list",
             Error = new ErrorModel()
@@ -399,7 +399,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Invalid items id",
             Error = new ErrorModel()
@@ -436,7 +436,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Invalid item quantity",
             Error = new ErrorModel()
@@ -467,7 +467,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No due date",
             Error = new ErrorModel()
@@ -498,7 +498,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Due date < create date",
             Error = new ErrorModel()
@@ -531,9 +531,9 @@ public static class InvoiceTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseModel<InvoiceDetaisUpdateTestModel>> UpdateDetailsData()
+    public static IEnumerable<Func<TestCaseModel<InvoiceDetaisUpdateTestModel>>> UpdateDetailsData()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "Update all details",
             Data = new()
@@ -544,7 +544,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2024, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Update all details and remove comment",
             Data = new()
@@ -555,9 +555,9 @@ public static class InvoiceTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseError<InvoiceDetaisUpdateTestModel>> UpdateDataInvalid()
+    public static IEnumerable<Func<TestCaseError<InvoiceDetaisUpdateTestModel>>> UpdateDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "No due date",
             Error = new ErrorModel()
@@ -572,7 +572,7 @@ public static class InvoiceTestDataSources
                 CreatedDate = new DateOnly(2027, 1, 1)
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No create date",
             Error = new ErrorModel()
@@ -588,9 +588,9 @@ public static class InvoiceTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseError<InvoiceIdsUpdateTestModel>> UpdateIdsDataInvalid()
+    public static IEnumerable<Func<TestCaseError<InvoiceIdsUpdateTestModel>>> UpdateIdsDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "No seller id",
             Error = new ErrorModel()
@@ -606,7 +606,7 @@ public static class InvoiceTestDataSources
                 Items = [new() { Name = User1_Seller0_Customer0_Item0, Quantity = 1 }]
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No customer id",
             Error = new ErrorModel()
@@ -622,7 +622,7 @@ public static class InvoiceTestDataSources
                 Items = [new() { Name = User1_Seller0_Customer0_Item0, Quantity = 1 }]
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Empty item list",
             Error = new ErrorModel()
@@ -639,7 +639,7 @@ public static class InvoiceTestDataSources
                 Items = []
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No item id",
             Error = new ErrorModel()
@@ -656,7 +656,7 @@ public static class InvoiceTestDataSources
                 Items = [new() { Quantity = 1 }]
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Invalid item quantity",
             Error = new ErrorModel()
@@ -673,7 +673,7 @@ public static class InvoiceTestDataSources
                 Items = [new() { Name = User1_Seller0_Customer0_Item0, Quantity = 0 }]
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Another seller",
             Error = new ErrorModel()
@@ -690,7 +690,7 @@ public static class InvoiceTestDataSources
                 Items = [new() { Name = User1_Seller0_Customer0_Item0, Quantity = 1 }]
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Another customer",
             Error = new ErrorModel()
@@ -707,7 +707,7 @@ public static class InvoiceTestDataSources
                 Items = [new() { Name = User1_Seller1_Customer0_Item0, Quantity = 1 }]
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Item of another customer",
             Error = new ErrorModel()
@@ -726,16 +726,16 @@ public static class InvoiceTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseModel<InvoiceStatusChangeTestModel>> UpdateStatusData()
+    public static IEnumerable<Func<TestCaseModel<InvoiceStatusChangeTestModel>>> UpdateStatusData()
     {
-        yield return new() { TestName = "Status payed to send", Data = new() { StartStatus = InvoiceStatus.Payed, Status = InvoiceStatus.Send } };
-        yield return new() { TestName = "Status send to payed", Data = new() { StartStatus = InvoiceStatus.Send, Status = InvoiceStatus.Payed } };
-        yield return new() { TestName = "Status send to created", Data = new() { StartStatus = InvoiceStatus.Send, Status = InvoiceStatus.Created } };
+        yield return () => new() { TestName = "Status payed to send", Data = new() { StartStatus = InvoiceStatus.Payed, Status = InvoiceStatus.Send } };
+        yield return () => new() { TestName = "Status send to payed", Data = new() { StartStatus = InvoiceStatus.Send, Status = InvoiceStatus.Payed } };
+        yield return () => new() { TestName = "Status send to created", Data = new() { StartStatus = InvoiceStatus.Send, Status = InvoiceStatus.Created } };
     }
 
-    public static IEnumerable<TestCaseError<InvoiceStatus>> UpdateStatusDataInvalid()
+    public static IEnumerable<Func<TestCaseError<InvoiceStatus>>> UpdateStatusDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "Status over due can not be set by hand",
             Error = new ErrorModel()
@@ -746,7 +746,7 @@ public static class InvoiceTestDataSources
             },
             Data = InvoiceStatus.OverDue
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Unknown status",
             Error = new ErrorModel()
@@ -763,33 +763,33 @@ public static class InvoiceTestDataSources
     public const string GenerateName = "Tyrion";
     public const string GenerateFileName = "TYRION-000001.pdf";
 
-    public static IEnumerable<TestCaseModel<InvoiceGenerateTestModel>> GenerateData()
+    public static IEnumerable<Func<TestCaseModel<InvoiceGenerateTestModel>>> GenerateData()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "LT invoice",
             Data = new() { LanguageCode = Language.LT, DocumentType = DocumentType.Invoice }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "LT job done act",
             Data = new() { LanguageCode = Language.LT, DocumentType = DocumentType.JobDoneAct }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "EN invoice",
             Data = new() { LanguageCode = Language.EN, DocumentType = DocumentType.Invoice }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "EN job done act",
             Data = new() { LanguageCode = Language.EN, DocumentType = DocumentType.JobDoneAct }
         };
     }
 
-    public static IEnumerable<TestCaseError<InvoiceGenerateTestModel>> GenerateDataInvalid()
+    public static IEnumerable<Func<TestCaseError<InvoiceGenerateTestModel>>> GenerateDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "Undefined language",
             Error = new ErrorModel()
@@ -800,7 +800,7 @@ public static class InvoiceTestDataSources
             },
             Data = new() { LanguageCode = (Language)99, DocumentType = DocumentType.Invoice }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Undefined document type",
             Error = new ErrorModel()
