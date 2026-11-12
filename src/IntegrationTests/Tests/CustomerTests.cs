@@ -15,9 +15,9 @@ namespace BillioIntegrationTest.Tests;
 public static class CustomerTestDataSources
 {
     public static ConcurrentDictionary<string, CustomerModel> SavedCustomers = new();
-    public static IEnumerable<TestCaseModel<CustomerModel>> AddData()
+    public static IEnumerable<Func<TestCaseModel<CustomerModel>>> AddData()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = Emails().First(),
             Data = new()
@@ -33,7 +33,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = Emails().ToArray()[1],
             Data = new()
@@ -50,9 +50,9 @@ public static class CustomerTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseError<CustomerModel>> AddDataInvalid()
+    public static IEnumerable<Func<TestCaseError<CustomerModel>>> AddDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "No email address",
             Error = new ErrorModel()
@@ -73,7 +73,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No company name",
             Error = new ErrorModel()
@@ -94,7 +94,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No company number",
             Error = new ErrorModel()
@@ -115,7 +115,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No street",
             Error = new ErrorModel()
@@ -136,7 +136,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No city",
             Error = new ErrorModel()
@@ -157,7 +157,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No state",
             Error = new ErrorModel()
@@ -178,7 +178,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No phone",
             Error = new ErrorModel()
@@ -199,7 +199,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No series",
             Error = new ErrorModel()
@@ -220,7 +220,7 @@ public static class CustomerTestDataSources
                 Phone = "+123450679"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "Seller the series doesn't belong to",
             Error = new ErrorModel()
@@ -243,9 +243,9 @@ public static class CustomerTestDataSources
         };
     }
 
-    public static IEnumerable<TestCaseError<CustomerModel>> UpdateDataInvalid()
+    public static IEnumerable<Func<TestCaseError<CustomerModel>>> UpdateDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "Random Id",
             Error = new ErrorModel()
@@ -267,7 +267,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No email address",
             Error = new ErrorModel()
@@ -288,7 +288,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No company name",
             Error = new ErrorModel()
@@ -309,7 +309,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No company number",
             Error = new ErrorModel()
@@ -330,7 +330,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No street",
             Error = new ErrorModel()
@@ -351,7 +351,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No city",
             Error = new ErrorModel()
@@ -372,7 +372,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No state",
             Error = new ErrorModel()
@@ -393,7 +393,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No phone",
             Error = new ErrorModel()
@@ -414,7 +414,7 @@ public static class CustomerTestDataSources
                 SeriesName = "LL"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No series",
             Error = new ErrorModel()

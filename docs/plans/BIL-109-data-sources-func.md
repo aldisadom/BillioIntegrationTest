@@ -47,12 +47,13 @@ BillioIntegrationTest only, so the plan lives here. Biller doesn't change; CI ru
 
 ## Steps
 
-1. [ ] `UserTests.cs`, `SellerTests.cs`, `CustomerTests.cs`, `ItemTest.cs`, `SeriesTests.cs`: 16 sources.
-2. [ ] `InvoiceTest.cs`: 9 sources.
-3. [ ] Check, with the local .NET SDK 10.0.404:
-   - `build.sh BillioIntegrationTest`: 0 TUnit0046, no new warnings.
-   - `dotnet test --list-tests` on the branch: the same 219 names as master (saved before the change).
-   - The test stack from Biller master, `run-integration.sh --repeat 3`: 219 passed, 3 runs.
+1. [x] `UserTests.cs`, `SellerTests.cs`, `CustomerTests.cs`, `ItemTest.cs`, `SeriesTests.cs`: 16 sources.
+2. [x] `InvoiceTest.cs`: 9 sources. Together: 25 signatures and 123 `yield return` lines, nothing else.
+3. [x] Check (2026-11-12), with the local .NET SDK 10.0.404:
+   - `build.sh BillioIntegrationTest`: `Warnings: 0 (unique)`, `Build succeeded.`
+   - `dotnet test --list-tests` on the branch: `Discovered 219 tests`, the same 219 names as master.
+   - The test stack from Biller master (23 changesets), `run-integration.sh --repeat 3`: each of the
+     3 runs `total: 219 failed: 0 succeeded: 219 skipped: 0`.
 
 ## Risk
 

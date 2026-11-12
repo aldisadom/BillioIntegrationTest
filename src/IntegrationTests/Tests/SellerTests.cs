@@ -16,9 +16,9 @@ public static class SellerTestDataSources
 {
 
     public static ConcurrentDictionary<string, SellerModel> SavedSellers = new();
-    public static IEnumerable<TestCaseModel<SellerModel>> AddData()
+    public static IEnumerable<Func<TestCaseModel<SellerModel>>> AddData()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = Emails().First(),
             Data = new()
@@ -35,7 +35,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = Emails().ToArray()[1],
             Data = new()
@@ -53,9 +53,9 @@ public static class SellerTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseError<SellerModel>> AddDataInvalid()
+    public static IEnumerable<Func<TestCaseError<SellerModel>>> AddDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "No email address",
             Error = new ErrorModel()
@@ -77,7 +77,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No company name",
             Error = new ErrorModel()
@@ -99,7 +99,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No company number",
             Error = new ErrorModel()
@@ -121,7 +121,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No street",
             Error = new ErrorModel()
@@ -143,7 +143,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No city",
             Error = new ErrorModel()
@@ -165,7 +165,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No state",
             Error = new ErrorModel()
@@ -187,7 +187,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No phone",
             Error = new ErrorModel()
@@ -209,7 +209,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No bank name",
             Error = new ErrorModel()
@@ -231,7 +231,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No bank number",
             Error = new ErrorModel()
@@ -253,7 +253,7 @@ public static class SellerTestDataSources
                 BankName = "Draconiko"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No user",
             Error = new ErrorModel()
@@ -276,9 +276,9 @@ public static class SellerTestDataSources
             }
         };
     }
-    public static IEnumerable<TestCaseError<SellerModel>> UpdateDataInvalid()
+    public static IEnumerable<Func<TestCaseError<SellerModel>>> UpdateDataInvalid()
     {
-        yield return new()
+        yield return () => new()
         {
             TestName = "Random Id",
             Error = new ErrorModel()
@@ -301,7 +301,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No email address",
             Error = new ErrorModel()
@@ -323,7 +323,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No company name",
             Error = new ErrorModel()
@@ -345,7 +345,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No company number",
             Error = new ErrorModel()
@@ -367,7 +367,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No street",
             Error = new ErrorModel()
@@ -389,7 +389,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No city",
             Error = new ErrorModel()
@@ -411,7 +411,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No state",
             Error = new ErrorModel()
@@ -433,7 +433,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No phone",
             Error = new ErrorModel()
@@ -455,7 +455,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No bank name",
             Error = new ErrorModel()
@@ -477,7 +477,7 @@ public static class SellerTestDataSources
                 BankNumber = "DC99968877453453211"
             }
         };
-        yield return new()
+        yield return () => new()
         {
             TestName = "No bank number",
             Error = new ErrorModel()
