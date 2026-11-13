@@ -1361,25 +1361,16 @@ public partial class Tests
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Add(addRequest)))!.Error!;
 
-        ErrorModel testError = new ErrorModel()
-        {
-            StatusCode = error.StatusCode,
-            Message = error.Message,
-
-        };
-
         if (testCase.TestName == "Invalid seller id")
-            testError.ExtendedMessage = $"Seller id {addRequest.SellerId} is invalid for user id {addRequest.UserId}";
+            testCase.Error.ExtendedMessage = $"Seller id {addRequest.SellerId} is invalid for user id {addRequest.UserId}";
         else if (testCase.TestName == "Invalid customer id")
-            testError.ExtendedMessage = $"Customer id {addRequest.CustomerId} is invalid for seller id {addRequest.SellerId}";
+            testCase.Error.ExtendedMessage = $"Customer id {addRequest.CustomerId} is invalid for seller id {addRequest.SellerId}";
         else if (testCase.TestName == "Invalid items id")
-            testError.ExtendedMessage = $"Items id {addRequest.Items[1].Id} {addRequest.Items[2].Id} is invalid for customer id {addRequest.CustomerId}";
+            testCase.Error.ExtendedMessage = $"Items id {addRequest.Items[1].Id} {addRequest.Items[2].Id} is invalid for customer id {addRequest.CustomerId}";
         else if (testCase.TestName == "Invalid item quantity")
-            testError.ExtendedMessage = $"Please provide quantity that should > 0 for {addRequest.Items[1].Id}";
-        else
-            testError = testCase.Error!;
+            testCase.Error.ExtendedMessage = $"Please provide quantity that should > 0 for {addRequest.Items[1].Id}";
 
-        await testError.CheckErrors(error);
+        await testCase.CheckErrors(error);
     }
 
     [Test]
