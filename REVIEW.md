@@ -9,6 +9,7 @@ Failure here looks like:
 - A mapping library (AutoMapper or similar) is added.
 - A Biller failure mode has no test: a wrong invoice total, a duplicate or skipped invoice number, an old invoice changing after an item is edited (checked through the invoice GET, not the PDF), a password or hash in a response, or one user's data returned to another. Invoices show their current seller, customer and user (BIL-86). There are no tests yet for cross-user access.
 - Don't ask for checks on PDF content (text, titles, totals, layout) or a PDF library. PDF endpoints are tested by the response only: status, `application/pdf`, file name, `%PDF-` header, and error cases.
+- A change makes `README.md` wrong and doesn't update it.
 
 Skip: `bin/`, `obj/`, `TestResults/`.
 
