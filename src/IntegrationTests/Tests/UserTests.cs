@@ -47,6 +47,23 @@ public static class UserTestDataSources
     {
         yield return () => new()
         {
+            TestName = "Name with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Name. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                Email = "dragon.user@example.com",
+                Name = "Drogon 🐉",
+                LastName = "Targaryen",
+                Password = "password"
+            }
+        };
+        yield return () => new()
+        {
             TestName = "MotherOfDragons@hotmail.com already exists",
             Error = new ErrorModel()
             {
@@ -193,6 +210,23 @@ public static class UserTestDataSources
 
     public static IEnumerable<Func<TestCaseError<UserModel>>> UpdateDataInvalid()
     {
+        yield return () => new()
+        {
+            TestName = "Last name with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Last Name. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                Id = default,
+                Email = Emails().First(),
+                Name = "Daenerys",
+                LastName = "Targaryen 🐉",
+            }
+        };
         yield return () => new()
         {
             TestName = "No name",

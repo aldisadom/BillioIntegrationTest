@@ -54,6 +54,28 @@ public static class CustomerTestDataSources
     {
         yield return () => new()
         {
+            TestName = "Company name with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Company Name. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                SellerEmail = SellerTestDataSources.Emails().First(),
+                Email = "dragon.customer@example.com",
+                CompanyName = "Lannister Libations 🐉",
+                CompanyNumber = "CN123456789",
+                Street = "Lannister Lane 123",
+                City = "Casterly Rock",
+                State = "The Free Cities",
+                Phone = "+123450679",
+                SeriesName = "LL"
+            }
+        };
+        yield return () => new()
+        {
             TestName = "No email address",
             Error = new ErrorModel()
             {
@@ -245,6 +267,28 @@ public static class CustomerTestDataSources
 
     public static IEnumerable<Func<TestCaseError<CustomerModel>>> UpdateDataInvalid()
     {
+        yield return () => new()
+        {
+            TestName = "Street with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Street. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                Id = default,
+                Email = Emails().First(),
+                CompanyName = "Lannister Libations",
+                CompanyNumber = "CN123456789",
+                Street = "Lannister Lane 123 🐉",
+                City = "Casterly Rock",
+                State = "The Free Cities",
+                Phone = "+123450679",
+                SeriesName = "LL"
+            }
+        };
         yield return () => new()
         {
             TestName = "Random Id",

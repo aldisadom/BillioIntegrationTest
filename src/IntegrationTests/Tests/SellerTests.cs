@@ -27,7 +27,7 @@ public static class SellerTestDataSources
                 Email = Emails().First(),
                 CompanyName = "Dragons Delight",
                 CompanyNumber = "CN1234569",
-                Street = "Main road 5",
+                Street = "Ąžuolų g. 5, €",
                 City = "Braavos",
                 State = "The Free Cities",
                 Phone = "+123450679",
@@ -55,6 +55,29 @@ public static class SellerTestDataSources
     }
     public static IEnumerable<Func<TestCaseError<SellerModel>>> AddDataInvalid()
     {
+        yield return () => new()
+        {
+            TestName = "Company name with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Company Name. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                UserEmail = UserTestDataSources.Emails().First(),
+                Email = "dragon.seller@example.com",
+                CompanyName = "Dragons Delight 🐉",
+                CompanyNumber = "CN1234569",
+                Street = "Main road 5",
+                City = "Braavos",
+                State = "The Free Cities",
+                Phone = "+123450679",
+                BankName = "Draconiko",
+                BankNumber = "DC99968877453453211"
+            }
+        };
         yield return () => new()
         {
             TestName = "No email address",
@@ -278,6 +301,29 @@ public static class SellerTestDataSources
     }
     public static IEnumerable<Func<TestCaseError<SellerModel>>> UpdateDataInvalid()
     {
+        yield return () => new()
+        {
+            TestName = "Bank name with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Bank Name. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                Id = default,
+                Email = Emails().First(),
+                CompanyName = "Dragons Delight",
+                CompanyNumber = "CN1234569",
+                Street = "Main road 5",
+                City = "Braavos",
+                State = "The Free Cities",
+                Phone = "+123450679",
+                BankName = "Draconiko 🐉",
+                BankNumber = "DC99968877453453211"
+            }
+        };
         yield return () => new()
         {
             TestName = "Random Id",
