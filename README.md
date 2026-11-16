@@ -1,5 +1,7 @@
 # BillioIntegrationTest
 
+[Lietuviškai](docs/README_lt.md)
+
 End-to-end tests for the Biller API. They call a running API over HTTP, through the same typed
 clients the front end uses, and check each response: users, sellers, series, customers, items and
 invoices, including the errors each endpoint returns.
