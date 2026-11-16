@@ -64,6 +64,23 @@ public static class UserTestDataSources
         };
         yield return () => new()
         {
+            TestName = "Email with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Email. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                Email = "drogon🐉@example.com",
+                Name = "Drogon",
+                LastName = "Targaryen",
+                Password = "password"
+            }
+        };
+        yield return () => new()
+        {
             TestName = "MotherOfDragons@hotmail.com already exists",
             Error = new ErrorModel()
             {

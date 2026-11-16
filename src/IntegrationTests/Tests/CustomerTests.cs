@@ -76,6 +76,28 @@ public static class CustomerTestDataSources
         };
         yield return () => new()
         {
+            TestName = "State with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in State. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                SellerEmail = SellerTestDataSources.Emails().First(),
+                Email = "dragon.customer@example.com",
+                CompanyName = "Lannister Libations",
+                CompanyNumber = "CN123456789",
+                Street = "Lannister Lane 123",
+                City = "Casterly Rock",
+                State = "The Free Cities 🐉",
+                Phone = "+123450679",
+                SeriesName = "LL"
+            }
+        };
+        yield return () => new()
+        {
             TestName = "No email address",
             Error = new ErrorModel()
             {
