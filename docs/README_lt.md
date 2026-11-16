@@ -26,12 +26,12 @@ kokie yra angliškame faile.
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - Veikianti Biller API su duomenų baze, kurios negaila prarasti
-- Toliau aprašytam testų rinkiniui: Docker, Biller darbinė kopija `../Biller` ir bash su `curl`,
+- Toliau aprašytai laikinai testų aplinkai: Docker, Biller darbinė kopija `../Biller` ir bash su `curl`,
   `python3` ir `flock` (Linux arba WSL Windows sistemoje)
 
 ## Paleidimas
 
-Saugiausia naudoti laikiną Biller testų rinkinį, kuris turi savo duomenų bazę ir prievadus. Iš
+Saugiausia naudoti laikiną Biller testų aplinką, kuri turi savo duomenų bazę ir prievadus. Iš
 `../Biller`:
 
 ```sh
@@ -43,8 +43,8 @@ bash .claude/skills/_test-stack/scripts/test-stack.sh down
 `run-integration.sh` leidžia testus iš aplanko `BillioIntegrationTest`, esančio šalia Biller. Jei
 darbinė kopija yra kitame aplanke (worktree), pridėkite `--repo` su jos keliu, santykiniu nuo
 aplanko, iš kurio leidžiate komandą, arba absoliučiu, pavyzdžiui, `--repo ../BillioIntegrationTest-BIL-93`
-iš `../Biller`, kitaip bus testuojamas ne tas kodas. Norėdami testuoti API, kuri nėra testų
-rinkinys, pridėkite `--url http://localhost:<port>`: tada scenarijus nustato visus šešis toliau
+iš `../Biller`, kitaip bus testuojamas ne tas kodas. Norėdami testuoti kitą API, ne tą, kuri
+veikia laikinoje testų aplinkoje, pridėkite `--url http://localhost:<port>`: tada scenarijus nustato visus šešis toliau
 nurodytus adresus.
 
 Su API, kurią paleidote patys:
@@ -55,11 +55,11 @@ dotnet test BillioIntegrationTest.sln
 
 ## Konfigūracija
 
-`src/IntegrationTests/appsettings.json` turi API adresus `ClientsOptions`, po vieną URL kiekvienam
+`src/IntegrationTests/appsettings.json` turi API adresus skiltyje `ClientsOptions`, po vieną URL kiekvienam
 ištekliui, numatytai `http://localhost:8090/...`. Aplinkos kintamasis pakeičia vieną adresą.
 Nustatykite visus šešis: praleistas adresas vis tiek rodo į prievadą 8090, ir testai ištrintų ten
 esančius duomenis. WSL aplinkoje su Windows `dotnet.exe` eksportuoti kintamieji jo nepasiekia,
-nebent jų pavadinimai yra `WSLENV`: pridėkite `export WSLENV="${WSLENV:+$WSLENV:}ClientsOptions__UserUrl:ClientsOptions__SellerUrl:ClientsOptions__SeriesUrl:ClientsOptions__CustomerUrl:ClientsOptions__ItemUrl:ClientsOptions__InvoiceUrl"`
+nebent jų pavadinimai yra įrašyti į `WSLENV`: pridėkite `export WSLENV="${WSLENV:+$WSLENV:}ClientsOptions__UserUrl:ClientsOptions__SellerUrl:ClientsOptions__SeriesUrl:ClientsOptions__CustomerUrl:ClientsOptions__ItemUrl:ClientsOptions__InvoiceUrl"`
 prie toliau esančio bloko. `run-integration.sh` tai prideda pats, kai rasto dotnet pavadinimas yra
 `dotnet.exe`, bet ne tada, kai į jį rodo `dotnet` apvalkalas (wrapper).
 
@@ -78,7 +78,7 @@ vykdytuvą komandai `dotnet test`.
 
 ## Šakos ir CI
 
-API pakeitimas ir jo testai daromi tokio paties pavadinimo šakose Biller ir čia. CI
+API pakeitimas ir jo testai daromi tokio paties pavadinimo šakose Biller repozitorijoje ir čia. CI
 (`.github/workflows/ci.yml`) nuklonuoja Biller šaką tokiu pačiu pavadinimu kaip ši šaka, o jei
 tokios nėra, Biller master, paleidžia ją per Docker Compose ir leidžia su ja testus. Biller CI daro
 tą patį atvirkščiai.
