@@ -205,6 +205,60 @@ public static class InvoiceTestDataSources
     {
         yield return () => new()
         {
+            TestName = "Comment with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Comments. Can't show: 🔥 (U+1F525)"
+            },
+            Data = new()
+            {
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
+                Items =
+                [
+                    new (){
+                        Name = User0_Seller0_Customer0_Item0,
+                        Quantity = 10,
+                        Comments = "New"
+                    },
+                ],
+                Comments = "Fire 🔥",
+                DueDate = new DateOnly(2024, 1, 1).AddDays(10),
+                CreatedDate = new DateOnly(2024, 1, 1)
+            }
+        };
+        yield return () => new()
+        {
+            TestName = "Line comment with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Comments. Can't show: 🔥 (U+1F525)"
+            },
+            Data = new()
+            {
+                UserEmail = User0,
+                SellerEmail = User0_Seller0,
+                CustomerEmail = User0_Seller0_Customer0,
+                Items =
+                [
+                    new (){
+                        Name = User0_Seller0_Customer0_Item0,
+                        Quantity = 10,
+                        Comments = "Fire 🔥"
+                    },
+                ],
+                Comments = "Invoice com",
+                DueDate = new DateOnly(2024, 1, 1).AddDays(10),
+                CreatedDate = new DateOnly(2024, 1, 1)
+            }
+        };
+        yield return () => new()
+        {
             TestName = "No user id",
             Error = new ErrorModel()
             {
@@ -559,6 +613,23 @@ public static class InvoiceTestDataSources
     {
         yield return () => new()
         {
+            TestName = "Comment with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Comments. Can't show: 🔥 (U+1F525)"
+            },
+            Data = new()
+            {
+                BucketKey = InvoiceKeys().First(),
+                Comments = "Fire 🔥",
+                DueDate = new DateOnly(2027, 1, 1).AddDays(33),
+                CreatedDate = new DateOnly(2027, 1, 1)
+            }
+        };
+        yield return () => new()
+        {
             TestName = "No due date",
             Error = new ErrorModel()
             {
@@ -671,6 +742,23 @@ public static class InvoiceTestDataSources
                 SellerEmail = User1_Seller0,
                 CustomerEmail = User1_Seller0_Customer0,
                 Items = [new() { Name = User1_Seller0_Customer0_Item0, Quantity = 0 }]
+            }
+        };
+        yield return () => new()
+        {
+            TestName = "Line comment with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Comments. Can't show: 🔥 (U+1F525)"
+            },
+            Data = new()
+            {
+                BucketKey = InvoiceKeys().ToArray()[2],
+                SellerEmail = User1_Seller0,
+                CustomerEmail = User1_Seller0_Customer0,
+                Items = [new() { Name = User1_Seller0_Customer0_Item0, Quantity = 1, Comments = "Fire 🔥" }]
             }
         };
         yield return () => new()
@@ -1476,7 +1564,8 @@ public partial class Tests
             Id = string.IsNullOrEmpty(i.Name)
                 ? Guid.Empty
                 : InvoiceTestDataSources.SavedItems[i.Name].Id,
-            Quantity = i.Quantity
+            Quantity = i.Quantity,
+            Comments = i.Comments
         }).ToList();
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
