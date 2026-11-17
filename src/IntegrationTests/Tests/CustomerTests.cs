@@ -50,8 +50,44 @@ public static class CustomerTestDataSources
             }
         };
     }
+    // Valid add and update data for PdfCharacterCases: only the field the case names gets 🐉
+    private static Func<TestCaseError<CustomerModel>> AddPdfCharacterCase(string field, Action<CustomerModel> addCharacter) =>
+        PdfCharacterCases.For<CustomerModel>(field, () => new()
+        {
+            SellerEmail = SellerTestDataSources.Emails().First(),
+            Email = "dragon.customer@example.com",
+            CompanyName = "Lannister Libations",
+            CompanyNumber = "CN123456789",
+            Street = "Lannister Lane 123",
+            City = "Casterly Rock",
+            State = "The Free Cities",
+            Phone = "+123450679",
+            SeriesName = "LL"
+        }, addCharacter);
+
+    private static Func<TestCaseError<CustomerModel>> UpdatePdfCharacterCase(string field, Action<CustomerModel> addCharacter) =>
+        PdfCharacterCases.For<CustomerModel>(field, () => new()
+        {
+            Id = default,
+            Email = Emails().First(),
+            CompanyName = "Lannister Libations",
+            CompanyNumber = "CN123456789",
+            Street = "Lannister Lane 123",
+            City = "Casterly Rock",
+            State = "The Free Cities",
+            Phone = "+123450679",
+            SeriesName = "LL"
+        }, addCharacter);
+
     public static IEnumerable<Func<TestCaseError<CustomerModel>>> AddDataInvalid()
     {
+        yield return AddPdfCharacterCase("Company Number", c => c.CompanyNumber += " 🐉");
+        yield return AddPdfCharacterCase("Company Name", c => c.CompanyName += " 🐉");
+        yield return AddPdfCharacterCase("Street", c => c.Street += " 🐉");
+        yield return AddPdfCharacterCase("City", c => c.City += " 🐉");
+        yield return AddPdfCharacterCase("State", c => c.State += " 🐉");
+        yield return AddPdfCharacterCase("Email", c => c.Email = "dragon🐉.customer@example.com");
+        yield return AddPdfCharacterCase("Phone", c => c.Phone += " 🐉");
         yield return () => new()
         {
             TestName = "No email address",
@@ -245,6 +281,13 @@ public static class CustomerTestDataSources
 
     public static IEnumerable<Func<TestCaseError<CustomerModel>>> UpdateDataInvalid()
     {
+        yield return UpdatePdfCharacterCase("Company Number", c => c.CompanyNumber += " 🐉");
+        yield return UpdatePdfCharacterCase("Company Name", c => c.CompanyName += " 🐉");
+        yield return UpdatePdfCharacterCase("Street", c => c.Street += " 🐉");
+        yield return UpdatePdfCharacterCase("City", c => c.City += " 🐉");
+        yield return UpdatePdfCharacterCase("State", c => c.State += " 🐉");
+        yield return UpdatePdfCharacterCase("Email", c => c.Email = "dragon🐉.customer@example.com");
+        yield return UpdatePdfCharacterCase("Phone", c => c.Phone += " 🐉");
         yield return () => new()
         {
             TestName = "Random Id",

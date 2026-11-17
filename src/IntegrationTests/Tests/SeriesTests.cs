@@ -61,6 +61,12 @@ public static class SeriesTestDataSources
     {
         yield return () => new()
         {
+            TestName = "Name with a character the PDF can't show",
+            Error = new("Validation failure", "Please use only characters the invoice PDF can show in Name. Can't show: 🐉 (U+1F409)", HttpStatusCode.BadRequest),
+            Data = new() { SellerEmail = SellerTestDataSources.Emails().First(), Name = "DR🐉" }
+        };
+        yield return () => new()
+        {
             TestName = "No seller id",
             Error = new("Validation failure", "Please specify seller Id", HttpStatusCode.BadRequest),
             Data = new() { Name = "NS" }
@@ -93,6 +99,12 @@ public static class SeriesTestDataSources
 
     public static IEnumerable<Func<TestCaseError<SeriesModel>>> UpdateDataInvalid()
     {
+        yield return () => new()
+        {
+            TestName = "Name with a character the PDF can't show",
+            Error = new("Validation failure", "Please use only characters the invoice PDF can show in Name. Can't show: 🐉 (U+1F409)", HttpStatusCode.BadRequest),
+            Data = new() { Name = "DR🐉", NextNumber = 1 }
+        };
         yield return () => new()
         {
             TestName = "Random id",

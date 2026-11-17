@@ -43,8 +43,30 @@ public static class UserTestDataSources
         };
     }
 
+    // Valid add and update data for PdfCharacterCases: only the field the case names gets 🐉
+    private static Func<TestCaseError<UserAddRequest>> AddPdfCharacterCase(string field, Action<UserAddRequest> addCharacter) =>
+        PdfCharacterCases.For<UserAddRequest>(field, () => new()
+        {
+            Email = "dragon.user@example.com",
+            Name = "Drogon",
+            LastName = "Targaryen",
+            Password = "password"
+        }, addCharacter);
+
+    private static Func<TestCaseError<UserModel>> UpdatePdfCharacterCase(string field, Action<UserModel> addCharacter) =>
+        PdfCharacterCases.For<UserModel>(field, () => new()
+        {
+            Id = default,
+            Email = Emails().First(),
+            Name = "Daenerys",
+            LastName = "Targaryen",
+        }, addCharacter);
+
     public static IEnumerable<Func<TestCaseError<UserAddRequest>>> AddDataInvalid()
     {
+        yield return AddPdfCharacterCase("Name", u => u.Name += " 🐉");
+        yield return AddPdfCharacterCase("Last Name", u => u.LastName += " 🐉");
+        yield return AddPdfCharacterCase("Email", u => u.Email = "drogon🐉@example.com");
         yield return () => new()
         {
             TestName = "MotherOfDragons@hotmail.com already exists",
@@ -193,6 +215,8 @@ public static class UserTestDataSources
 
     public static IEnumerable<Func<TestCaseError<UserModel>>> UpdateDataInvalid()
     {
+        yield return UpdatePdfCharacterCase("Name", u => u.Name += " 🐉");
+        yield return UpdatePdfCharacterCase("Last Name", u => u.LastName += " 🐉");
         yield return () => new()
         {
             TestName = "No name",

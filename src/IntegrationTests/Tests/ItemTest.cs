@@ -45,6 +45,23 @@ public static class ItemTestDataSources
     {
         yield return () => new()
         {
+            TestName = "Name with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Name. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                CustomerEmail = CustomerTestDataSources.Emails().First(),
+                Name = "Dragon 🐉",
+                Price = 111,
+                Quantity = 9999
+            }
+        };
+        yield return () => new()
+        {
             TestName = "No name",
             Error = new ErrorModel()
             {
@@ -145,6 +162,23 @@ public static class ItemTestDataSources
 
     public static IEnumerable<Func<TestCaseError<ItemModel>>> UpdateDataInvalid()
     {
+        yield return () => new()
+        {
+            TestName = "Name with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Name. Can't show: 🐉 (U+1F409)"
+            },
+            Data = new()
+            {
+                Id = default,
+                Name = "Dragon 🐉",
+                Price = 123.1M,
+                Quantity = 9999
+            }
+        };
         yield return () => new()
         {
             TestName = "Random Id",
