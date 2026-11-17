@@ -3,7 +3,8 @@
 End-to-end tests for the Biller API: TUnit tests that call a running Biller stack over HTTP.
 
 ## Running
-- Start Biller first: `docker compose up -d --build` in `../Biller` (API at http://localhost:8090).
+- Start Biller first: `BILLER_ENVIRONMENT=Dev docker compose up -d --build` in `../Biller` (API at
+  http://localhost:8090), as CI does. Without the variable the API runs as `Prod`.
 - `dotnet test BillioIntegrationTest.sln`
 - The tests delete **all** data through the API before and after the run (`Tests/TestPreparation.cs`).
   Never point them at production.
