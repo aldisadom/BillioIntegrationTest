@@ -746,6 +746,23 @@ public static class InvoiceTestDataSources
         };
         yield return () => new()
         {
+            TestName = "Line comment with a character the PDF can't show",
+            Error = new ErrorModel()
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Message = "Validation failure",
+                ExtendedMessage = "Please use only characters the invoice PDF can show in Comments. Can't show: 🔥 (U+1F525)"
+            },
+            Data = new()
+            {
+                BucketKey = InvoiceKeys().ToArray()[2],
+                SellerEmail = User1_Seller0,
+                CustomerEmail = User1_Seller0_Customer0,
+                Items = [new() { Name = User1_Seller0_Customer0_Item0, Quantity = 1, Comments = "Fire 🔥" }]
+            }
+        };
+        yield return () => new()
+        {
             TestName = "Another seller",
             Error = new ErrorModel()
             {
@@ -1547,7 +1564,8 @@ public partial class Tests
             Id = string.IsNullOrEmpty(i.Name)
                 ? Guid.Empty
                 : InvoiceTestDataSources.SavedItems[i.Name].Id,
-            Quantity = i.Quantity
+            Quantity = i.Quantity,
+            Comments = i.Comments
         }).ToList();
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
