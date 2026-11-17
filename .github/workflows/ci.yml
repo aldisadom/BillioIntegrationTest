@@ -46,6 +46,8 @@ jobs:
 
       - name: Start services
         working-directory: ${{ env.API_COMPOSE_DIR }}
+        env:
+          BILLER_ENVIRONMENT: Dev
         run: docker compose -f docker-compose.yml up -d --build
 
       - name: Wait for API to be ready
