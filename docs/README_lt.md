@@ -18,7 +18,7 @@ kokie yra angliškame faile.
 | Repozitorija | Kas tai |
 |---|---|
 | [Biller](https://github.com/aldisadom/Biller) | API, duomenų bazės migracijos ir PDF dokumentai |
-| [BillerContracts](https://github.com/aldisadom/BillerContracts) | Užklausų ir atsakymų įrašai, išvardijimai (enum) ir tipizuoti HTTP klientai, skelbiami kaip NuGet paketai `BillerContracts` ir `BillerContracts.Clients` |
+| [BillerContracts](https://github.com/aldisadom/BillerContracts) | Užklausų ir atsakymų įrašai, išvardijimai (enum) ir tipizuoti HTTP klientai, skelbiami NuGet paketais `BillerContracts` ir `BillerContracts.Clients` |
 | [BillerFrontEnd](https://github.com/aldisadom/BillerFrontEnd) | Blazor naudotojo sąsaja. API ji kviečia per `BillerContracts.Clients` |
 | [BillioIntegrationTest](https://github.com/aldisadom/BillioIntegrationTest) | Testai, kurie kviečia veikiančią API per HTTP |
 
@@ -40,7 +40,7 @@ bash .claude/skills/_test-stack/scripts/run-integration.sh
 bash .claude/skills/_test-stack/scripts/test-stack.sh down
 ```
 
-`run-integration.sh` leidžia testus iš aplanko `BillioIntegrationTest`, esančio šalia Biller. Jei
+`run-integration.sh` leidžia testus iš aplanko `BillioIntegrationTest`, esančio šalia aplanko `Biller`. Jei
 darbinė kopija yra kitame aplanke (worktree), pridėkite `--repo` su jos keliu, santykiniu nuo
 aplanko, iš kurio leidžiate komandą, arba absoliučiu, pavyzdžiui, `--repo ../BillioIntegrationTest-BIL-93`
 iš `../Biller`, kitaip bus testuojamas ne tas kodas. Norėdami testuoti kitą API, ne tą, kuri
@@ -79,7 +79,7 @@ vykdytuvą komandai `dotnet test`.
 ## Šakos ir CI
 
 API pakeitimas ir jo testai daromi tokio paties pavadinimo šakose Biller repozitorijoje ir čia. CI
-(`.github/workflows/ci.yml`) nuklonuoja Biller šaką tokiu pačiu pavadinimu kaip ši šaka, o jei
+(`.github/workflows/ci.yml`) nuklonuoja Biller šaką, kurios pavadinimas toks pat kaip šios šakos, o jei
 tokios nėra, Biller master, paleidžia ją per Docker Compose ir leidžia su ja testus. Biller CI daro
 tą patį atvirkščiai.
 
