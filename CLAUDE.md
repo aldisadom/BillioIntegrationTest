@@ -3,8 +3,9 @@
 End-to-end tests for the Biller API: TUnit tests that call a running Biller stack over HTTP.
 
 ## Running
-- Start Biller first: `docker compose up -d --build` in `../Biller` (API at http://localhost:8090).
-- `dotnet test BillioIntegrationTest.sln`
+- The safe way is Biller's throwaway test stack (`README.md`, "Run"): it has its own database and ports.
+- Against an API you started yourself: `docker compose up -d --build` in `../Biller` (API at
+  http://localhost:8090), then `dotnet test BillioIntegrationTest.sln`. That deletes the data of that stack.
 - The tests delete **all** data through the API before and after the run (`Tests/TestPreparation.cs`).
   Never point them at production.
 - CI clones the Biller branch with the same name as this branch, or Biller master if there isn't
@@ -23,7 +24,9 @@ End-to-end tests for the Biller API: TUnit tests that call a running Biller stac
 - Error cases check the status code, message and extended message (`ErrorModel`).
 - The HTTP clients come from the `BillerContracts.Clients` NuGet package (same version as BillerFrontEnd),
   built once in `ApiClients/TestClients.cs`. URLs are in `appsettings.json` (`ClientsOptions`); environment
-  variables such as `ClientsOptions__UserUrl` override them.
+  variables such as `ClientsOptions__UserUrl` override them. Set all six: a left-out one still
+  points at port 8090, and the tests delete the data there. In WSL with Windows `dotnet.exe`, the
+  variables need `WSLENV` too (`README.md`, "Configuration").
 - A failing call throws `ClientAPIException`, whose `Error` holds the status code, message and extended
   message. Error tests: `ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => call))!.Error!;`
 
@@ -34,6 +37,9 @@ End-to-end tests for the Biller API: TUnit tests that call a running Biller stac
 - Don't read PDF content: no PDF parsing library, no asserts on text, titles or totals inside a PDF.
   A PDF endpoint's test checks the status, `application/pdf`, the file name and the `%PDF-` header.
 - No AutoMapper or any other mapping library, in any Biller repo. Build requests by hand.
+- Update `README.md` in the same change when the change makes it wrong: a new or changed command,
+  setting, port, endpoint group, package, or project layout. And `docs/README_lt.md`, its Lithuanian
+  translation, with it.
 - Plans for work only in this repo go in `docs/plans/BIL-<n>-<slug>.md` here. Plans that change
   several repos live in Biller's `docs/plans/`.
 - Before reading, comparing or using another Biller repo (including the Biller you run against),
@@ -62,6 +68,9 @@ Every Biller repo has these limits. Keep them when updating packages.
 
 ## Before a PR
 1. Run the tests against the matching Biller branch. Paste the summary line with the passed/failed counts.
-2. Run `/code-review` on the branch and tell it to follow `REVIEW.md`. Fix Important findings,
+2. Check `README.md` and `docs/README_lt.md` against the diff, and update both when the change makes them wrong.
+3. Run `/code-review high` on the branch on Opus at high effort (when the session runs another model
+   or a lower effort, start a general-purpose agent with `model: opus` and `effort: high` that runs
+   it), and tell it to follow `REVIEW.md`. Fix Important findings,
    answer the rest, at most 3 rounds.
-3. Fill `.github/pull_request_template.md`.
+4. Fill `.github/pull_request_template.md`.
