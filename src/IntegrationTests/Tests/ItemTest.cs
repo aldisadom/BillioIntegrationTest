@@ -412,6 +412,10 @@ public partial class Tests
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(addResponse.Id)))!.Error!;
         ErrorModel expectedError = new("Entity not found", $"Invoice item:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
+
+        // Its versions go with it
+        error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.GetVersions(addResponse.Id)))!.Error!;
+        await expectedError.CheckErrors(error);
     }
 
     [Test]
@@ -556,17 +560,20 @@ public partial class Tests
             Price = 10,
             Quantity = 1
         };
+        // The API's clock may differ a little from this machine's
+        DateTime before = DateTime.UtcNow.AddMinutes(-5);
         Guid id = (await _itemClient.Add(addRequest)).Id;
 
-        // Two price changes make versions 2 and 3; saving the same name and price again, with only
-        // another quantity, makes none
+        // A price-only change and a name-only change each make a version; saving the same name and
+        // price again, with only another quantity, makes none
         await _itemClient.Update(new ItemUpdateRequest { Id = id, Name = "Needle", Price = 15, Quantity = 1 });
-        await _itemClient.Update(new ItemUpdateRequest { Id = id, Name = "Needle, sharpened", Price = 20, Quantity = 1 });
-        await _itemClient.Update(new ItemUpdateRequest { Id = id, Name = "Needle, sharpened", Price = 20, Quantity = 4 });
+        await _itemClient.Update(new ItemUpdateRequest { Id = id, Name = "Needle, sharpened", Price = 15, Quantity = 1 });
+        await _itemClient.Update(new ItemUpdateRequest { Id = id, Name = "Needle, sharpened", Price = 15, Quantity = 4 });
+        DateTime after = DateTime.UtcNow.AddMinutes(5);
 
         ItemVersionListResponse versions = await _itemClient.GetVersions(id);
 
-        (string Name, decimal Price)[] expected = [("Needle", 10m), ("Needle", 15m), ("Needle, sharpened", 20m)];
+        (string Name, decimal Price)[] expected = [("Needle", 10m), ("Needle", 15m), ("Needle, sharpened", 15m)];
 
         await Assert.That(versions.ItemId).IsEqualTo(id);
         await Assert.That(versions.Versions).Count().IsEqualTo(expected.Length);
@@ -576,7 +583,10 @@ public partial class Tests
             await Assert.That(versions.Versions[i].Version).IsEqualTo(i + 1);
             await Assert.That(versions.Versions[i].Name).IsEqualTo(expected[i].Name);
             await Assert.That(versions.Versions[i].Price).IsEquivalentTo(expected[i].Price);
-            await Assert.That(versions.Versions[i].ChangedDate).IsNotDefault();
+            await Assert.That(versions.Versions[i].ChangedDate.ToUniversalTime()).IsGreaterThanOrEqualTo(before)
+                .And.IsLessThanOrEqualTo(after);
+            if (i > 0)
+                await Assert.That(versions.Versions[i].ChangedDate).IsGreaterThanOrEqualTo(versions.Versions[i - 1].ChangedDate);
         }
 
         ItemResponse latest = await _itemClient.Get(id);
@@ -584,7 +594,7 @@ public partial class Tests
         await Assert.That(latest.Id).IsEqualTo(id);
         await Assert.That(latest.CustomerId).IsEqualTo(addRequest.CustomerId);
         await Assert.That(latest.Name).IsEqualTo("Needle, sharpened");
-        await Assert.That(latest.Price).IsEquivalentTo(20m);
+        await Assert.That(latest.Price).IsEquivalentTo(15m);
         await Assert.That(latest.Quantity).IsEquivalentTo(4m);
         await Assert.That(latest.Version).IsEqualTo(3);
 
@@ -598,14 +608,31 @@ public partial class Tests
         await Assert.That(first.Quantity).IsEquivalentTo(4m);
         await Assert.That(first.Version).IsEqualTo(1);
 
-        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(id, 9)))!.Error!;
-        await new ErrorModel("Entity not found", $"Invoice item:{id} version 9 not found", HttpStatusCode.NotFound).CheckErrors(error);
-
-        // Deleting the item deletes its versions
         await _itemClient.Delete(id);
+    }
 
-        error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.GetVersions(id)))!.Error!;
-        await new ErrorModel("Entity not found", $"Invoice item:{id} not found", HttpStatusCode.NotFound).CheckErrors(error);
+    [Test]
+    [DependsOn(nameof(ItemAdd_Valid_Success), [typeof(TestCaseModel<ItemModel>)])]
+    public async Task ItemGetVersion_NotFound_Fail()
+    {
+        Guid id = GetItemFromTest(ItemTestDataSources.Names().First()).Id;
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(id, 99)))!.Error!;
+
+        ErrorModel expectedError = new("Entity not found", $"Invoice item:{id} version 99 not found", HttpStatusCode.NotFound);
+        await expectedError.CheckErrors(error);
+    }
+
+    [Test]
+    [DependsOn(nameof(Item_BeforeTests_DBEmpty))]
+    public async Task ItemGetVersions_NotFound_Fail()
+    {
+        Guid id = Guid.NewGuid();
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.GetVersions(id)))!.Error!;
+
+        ErrorModel expectedError = new("Entity not found", $"Invoice item:{id} not found", HttpStatusCode.NotFound);
+        await expectedError.CheckErrors(error);
     }
 
     [Test]
