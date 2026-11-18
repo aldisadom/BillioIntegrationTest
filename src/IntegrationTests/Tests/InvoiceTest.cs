@@ -1042,13 +1042,13 @@ public partial class Tests
     }
 
     // Asserts the fields an invoice from AddInvoiceWithOwnData keeps from its add request and its customer's series.
-    private static async Task AssertOwnInvoice(InvoiceResponse actual, Guid invoiceId, InvoiceAddRequest request, CustomerResponse customer)
+    private static async Task AssertOwnInvoice(InvoiceResponse actual, Guid invoiceId, InvoiceAddRequest request, CustomerResponse customer, int invoiceNumber = 1)
     {
         await Assert.That(actual.Id).IsEqualTo(invoiceId);
         await Assert.That(actual.UserId).IsEqualTo(request.UserId);
         await Assert.That(actual.SeriesId).IsEqualTo(customer.SeriesId);
         await Assert.That(actual.SeriesName).IsEqualTo(customer.SeriesName);
-        await Assert.That(actual.InvoiceNumber).IsEqualTo(1);
+        await Assert.That(actual.InvoiceNumber).IsEqualTo(invoiceNumber);
         await Assert.That(actual.CreatedDate).IsEqualTo(request.CreatedDate);
         await Assert.That(actual.DueDate).IsEqualTo(request.DueDate);
         await Assert.That(actual.Comments).IsEqualTo(request.Comments);
@@ -2211,6 +2211,7 @@ public partial class Tests
 
         InvoiceResponse getResponse = await GetInvoice(latestId);
 
+        await AssertOwnInvoice(getResponse, latestId, request, customer, 2);
         await AssertSingleLine(getResponse, item.Id, itemUpdate.Name, itemUpdate.Price, request.Items[0].Quantity, request.Items[0].Comments, 2);
 
         // With an older version: that version's name and price
@@ -2219,8 +2220,11 @@ public partial class Tests
 
         getResponse = await GetInvoice(olderId);
 
+        await AssertOwnInvoice(getResponse, olderId, request, customer, 3);
         await AssertSingleLine(getResponse, item.Id, item.Name, item.Price, request.Items[0].Quantity, request.Items[0].Comments, 1);
-        await Assert.That(getResponse.CustomerId).IsEqualTo(customer.Id);
+
+        // Three invoices in this series, numbered 1 to 3
+        await Assert.That((await _seriesClient.Get(customer.SeriesId)).NextNumber).IsEqualTo(4);
 
         await _invoiceClient.Delete(olderId);
         await _invoiceClient.Delete(latestId);
@@ -2245,8 +2249,13 @@ public partial class Tests
         ErrorModel error;
         if (model.Update)
         {
+            // Other values change too, so a save that went through in part would show
             InvoiceUpdateRequest updateRequest = UpdateRequestFromInvoice(await GetInvoice(invoiceId));
             updateRequest.Items[0].Version = model.Version;
+            updateRequest.Items[0].Quantity += 1;
+            updateRequest.Items[0].Comments = "Rejected";
+            updateRequest.Comments = "Rejected";
+            updateRequest.DueDate = updateRequest.DueDate.AddDays(1);
             error = (await Assert.ThrowsAsync<ClientAPIException>(() => _invoiceClient.Update(updateRequest)))!.Error!;
         }
         else
@@ -2261,6 +2270,7 @@ public partial class Tests
         // The rejected save changed nothing: the invoice from AddInvoiceWithOwnData is the only one, as it was
         InvoiceListResponse invoices = await _invoiceClient.Get(new InvoiceGetRequest { CustomerId = customer.Id });
         await Assert.That(invoices.TotalCount).IsEqualTo(1);
+        await Assert.That((await _seriesClient.Get(customer.SeriesId)).NextNumber).IsEqualTo(2);
 
         InvoiceResponse getResponse = await GetInvoice(invoiceId);
         await AssertOwnInvoice(getResponse, invoiceId, request, customer);

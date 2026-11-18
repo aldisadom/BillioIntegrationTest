@@ -586,7 +586,8 @@ public partial class Tests
             await Assert.That(versions.Versions[i].ChangedDate.ToUniversalTime()).IsGreaterThanOrEqualTo(before)
                 .And.IsLessThanOrEqualTo(after);
             if (i > 0)
-                await Assert.That(versions.Versions[i].ChangedDate).IsGreaterThanOrEqualTo(versions.Versions[i - 1].ChangedDate);
+                // Each update is its own call, so each version has its own, later time
+                await Assert.That(versions.Versions[i].ChangedDate).IsGreaterThan(versions.Versions[i - 1].ChangedDate);
         }
 
         ItemResponse latest = await _itemClient.Get(id);
