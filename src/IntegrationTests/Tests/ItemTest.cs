@@ -356,6 +356,7 @@ public partial class Tests
         await Assert.That(getResponse!.Name).IsEqualTo(addRequest.Name);
         await Assert.That(getResponse!.Price).IsEquivalentTo(addRequest.Price);
         await Assert.That(getResponse!.Quantity).IsEquivalentTo(addRequest.Quantity);
+        await Assert.That(getResponse!.Version).IsEqualTo(1);
 
         ItemModel item = new()
         {
@@ -486,6 +487,7 @@ public partial class Tests
         await Assert.That(listed.Name).IsEqualTo(expected.Name + "_new");
         await Assert.That(listed.Price).IsEquivalentTo(expected.Price + 666);
         await Assert.That(listed.Quantity).IsEquivalentTo(expected.Quantity + 999);
+        await Assert.That(listed.Version).IsEqualTo(2);
         await Assert.That(listResponse.TotalCount).IsEqualTo(2);
         await Assert.That(listResponse.Page).IsEqualTo(expectedPage);
         await Assert.That(listResponse.PageSize).IsEqualTo(PageSize.p1);
@@ -535,6 +537,75 @@ public partial class Tests
         await Assert.That(getResponse!.Name).IsEqualTo(updateRequest.Name);
         await Assert.That(getResponse!.Quantity).IsEquivalentTo(updateRequest.Quantity);
         await Assert.That(getResponse!.Price).IsEquivalentTo(updateRequest.Price);
+        await Assert.That(getResponse!.Version).IsEqualTo(2);
+    }
+
+    // Runs after the tests that count every item, because it adds one of its own
+    [Test]
+    [DependsOn(nameof(ItemGetAll_Valid_Success))]
+    [DependsOn(nameof(ItemGetAll_SecondPage_Success))]
+    [DependsOn(nameof(ItemGetAll_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(ItemGetAll_NegativePage_ReturnsFirstPage))]
+    [DependsOn(nameof(ItemGetAllForCustomer_Valid_Success))]
+    public async Task ItemVersions_Valid_Success()
+    {
+        ItemAddRequest addRequest = new()
+        {
+            CustomerId = CustomerTestDataSources.SavedCustomers[CustomerTestDataSources.Emails().First()].Id,
+            Name = "Needle",
+            Price = 10,
+            Quantity = 1
+        };
+        Guid id = (await _itemClient.Add(addRequest)).Id;
+
+        // Two price changes make versions 2 and 3; saving the same name and price again, with only
+        // another quantity, makes none
+        await _itemClient.Update(new ItemUpdateRequest { Id = id, Name = "Needle", Price = 15, Quantity = 1 });
+        await _itemClient.Update(new ItemUpdateRequest { Id = id, Name = "Needle, sharpened", Price = 20, Quantity = 1 });
+        await _itemClient.Update(new ItemUpdateRequest { Id = id, Name = "Needle, sharpened", Price = 20, Quantity = 4 });
+
+        ItemVersionListResponse versions = await _itemClient.GetVersions(id);
+
+        (string Name, decimal Price)[] expected = [("Needle", 10m), ("Needle", 15m), ("Needle, sharpened", 20m)];
+
+        await Assert.That(versions.ItemId).IsEqualTo(id);
+        await Assert.That(versions.Versions).Count().IsEqualTo(expected.Length);
+        for (int i = 0; i < expected.Length; i++)
+        {
+            // Oldest first
+            await Assert.That(versions.Versions[i].Version).IsEqualTo(i + 1);
+            await Assert.That(versions.Versions[i].Name).IsEqualTo(expected[i].Name);
+            await Assert.That(versions.Versions[i].Price).IsEquivalentTo(expected[i].Price);
+            await Assert.That(versions.Versions[i].ChangedDate).IsNotDefault();
+        }
+
+        ItemResponse latest = await _itemClient.Get(id);
+
+        await Assert.That(latest.Id).IsEqualTo(id);
+        await Assert.That(latest.CustomerId).IsEqualTo(addRequest.CustomerId);
+        await Assert.That(latest.Name).IsEqualTo("Needle, sharpened");
+        await Assert.That(latest.Price).IsEquivalentTo(20m);
+        await Assert.That(latest.Quantity).IsEquivalentTo(4m);
+        await Assert.That(latest.Version).IsEqualTo(3);
+
+        // An old version has that version's name and price, and the item's current quantity
+        ItemResponse first = await _itemClient.Get(id, 1);
+
+        await Assert.That(first.Id).IsEqualTo(id);
+        await Assert.That(first.CustomerId).IsEqualTo(addRequest.CustomerId);
+        await Assert.That(first.Name).IsEqualTo("Needle");
+        await Assert.That(first.Price).IsEquivalentTo(10m);
+        await Assert.That(first.Quantity).IsEquivalentTo(4m);
+        await Assert.That(first.Version).IsEqualTo(1);
+
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(id, 9)))!.Error!;
+        await new ErrorModel("Entity not found", $"Invoice item:{id} version 9 not found", HttpStatusCode.NotFound).CheckErrors(error);
+
+        // Deleting the item deletes its versions
+        await _itemClient.Delete(id);
+
+        error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.GetVersions(id)))!.Error!;
+        await new ErrorModel("Entity not found", $"Invoice item:{id} not found", HttpStatusCode.NotFound).CheckErrors(error);
     }
 
     [Test]
