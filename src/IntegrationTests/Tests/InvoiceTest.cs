@@ -2287,18 +2287,28 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
     [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
-    public async Task InvoiceWithDeletedItem_Valid_Success()
+    public async Task ItemDelete_WhenUsedByInvoice_Fail()
     {
         var (_, customer, item, request, invoiceId) = await AddInvoiceWithOwnData("Sansa");
 
-        await _itemClient.Delete(item.Id);
+        ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Delete(item.Id)))!.Error!;
+        await new ErrorModel("Validation failure", $"Item id {item.Id} is used by invoices", HttpStatusCode.BadRequest).CheckErrors(error);
+
+        // The item, its versions and the invoice are all still there
+        ItemResponse itemAfter = await _itemClient.Get(item.Id);
+        await Assert.That(itemAfter.Version).IsEqualTo(1);
+        await Assert.That((await _itemClient.GetVersions(item.Id)).Versions).Count().IsEqualTo(1);
 
         InvoiceResponse getResponse = await GetInvoice(invoiceId);
-
         await AssertOwnInvoice(getResponse, invoiceId, request, customer);
         await AssertSingleLine(getResponse, item.Id, item.Name, item.Price, request.Items[0].Quantity, request.Items[0].Comments, 1);
 
+        // Once no invoice uses it, it can be deleted
         await _invoiceClient.Delete(invoiceId);
+        await _itemClient.Delete(item.Id);
+
+        error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(item.Id)))!.Error!;
+        await new ErrorModel("Entity not found", $"Invoice item:{item.Id} not found", HttpStatusCode.NotFound).CheckErrors(error);
     }
 
     [Test]
@@ -2309,20 +2319,20 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
     [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
-    public async Task CustomerDelete_WhenHasInvoice_Fail()
+    public async Task CustomerDelete_WhenHasItemAndInvoice_Fail()
     {
         var (_, customer, item, _, invoiceId) = await AddInvoiceWithOwnData("Bran");
 
-        // Without its item, only the invoice keeps the customer.
-        await _itemClient.Delete(item.Id);
-
+        // The invoice's item can't be deleted while the invoice uses it, so both keep the customer.
+        // Postgres reports the items constraint first (fk_invoice_customers_id, named so in migration 006).
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Delete(customer.Id)))!.Error!;
 
-        ErrorModel expectedError = new("Validation failure", "Can not delete (please clear all dependants) or update (item not found): invoices_customer_id", HttpStatusCode.BadRequest);
+        ErrorModel expectedError = new("Validation failure", "Can not delete (please clear all dependants) or update (item not found): invoice_customers_id", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
 
         InvoiceResponse getResponse = await GetInvoice(invoiceId);
         await Assert.That(getResponse.CustomerId).IsEqualTo(customer.Id);
+        await Assert.That((await _itemClient.Get(item.Id)).CustomerId).IsEqualTo(customer.Id);
 
         await _invoiceClient.Delete(invoiceId);
     }
