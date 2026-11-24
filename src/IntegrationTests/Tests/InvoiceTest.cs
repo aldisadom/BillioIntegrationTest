@@ -2153,10 +2153,12 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
     [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
-    public async Task CustomerDelete_WhenHasInvoice_Fail()
+    public async Task CustomerDelete_WhenHasItemAndInvoice_Fail()
     {
-        // The invoice's line keeps the item (BIL-113), so the item can't be deleted first: the customer
-        // still has its item and its invoice.
+        // Since BIL-113 a customer can't be left with only its invoice through the API: an invoice needs
+        // a line, the line's item must be the customer's, and that item can't be deleted while the line
+        // uses it. So the delete breaks both the items key and the invoices key; this test checks it is
+        // refused and the invoice still reads.
         var (_, customer, _, _, invoiceId) = await AddInvoiceWithOwnData("Bran");
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Delete(customer.Id)))!.Error!;
@@ -2212,6 +2214,51 @@ public partial class Tests
         await AssertLines(getResponse, oneLeft);
 
         await _invoiceClient.Delete(invoiceId);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
+    [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
+    // BIL-113: a list page loads the lines of all its invoices in one query and hands each invoice its
+    // own, so two invoices on one page each show their own lines and total.
+    public async Task InvoiceGetAllForCustomer_EachInvoiceItsOwnLines_Success()
+    {
+        var (_, customer, first, request, firstInvoiceId) = await AddInvoiceWithOwnData("Robb");
+        ItemResponse second = await AddOwnItem(customer.Id, "Ice_Robb", 20);
+        ItemResponse third = await AddOwnItem(customer.Id, "Oathkeeper_Robb", 30);
+
+        AddResponse secondInvoice = await _invoiceClient.Add(new InvoiceAddRequest()
+        {
+            UserId = request.UserId,
+            SellerId = request.SellerId,
+            CustomerId = customer.Id,
+            Items =
+            [
+                new() { Id = third.Id, Quantity = 2, Comments = "Oathkeeper" },
+                new() { Id = second.Id, Quantity = 1, Comments = "Ice" }
+            ],
+            Comments = "Robb's second",
+            DueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(6)),
+            CreatedDate = DateOnly.FromDateTime(DateTime.Now)
+        });
+
+        InvoiceListResponse listResponse = await _invoiceClient.Get(new InvoiceGetRequest { CustomerId = customer.Id });
+
+        await Assert.That(listResponse.Invoices)
+            .IsNotNull()
+            .And.Count().IsEqualTo(2);
+        await AssertLines(listResponse.Invoices.Single(i => i.Id == firstInvoiceId),
+            [(first, request.Items[0].Quantity, request.Items[0].Comments)]);
+        await AssertLines(listResponse.Invoices.Single(i => i.Id == secondInvoice.Id),
+            [(third, 2, "Oathkeeper"), (second, 1, "Ice")]);
+
+        await _invoiceClient.Delete(secondInvoice.Id);
+        await _invoiceClient.Delete(firstInvoiceId);
     }
 
     private static async Task<ItemResponse> AddOwnItem(Guid customerId, string name, decimal price)
