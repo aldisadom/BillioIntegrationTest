@@ -2077,9 +2077,9 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
     [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
-    // BIL-113: a line shows its item's current name and price, so an item edit changes the invoice
-    // at once, before any PUT /invoices (until BIL-85 brings item versions).
-    public async Task InvoiceLineFollowsItemEdit_Valid_Success()
+    // BIL-113: an invoice item shows its item's current name and price, so an item edit changes the
+    // invoice at once, before any PUT /invoices (until BIL-85 brings item versions).
+    public async Task InvoiceItemFollowsItemEdit_Valid_Success()
     {
         var (_, customer, item, request, invoiceId) = await AddInvoiceWithOwnData("Arya");
 
@@ -2122,14 +2122,14 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
     [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
-    // BIL-113: invoice_lines.item_id references the item, so an item an invoice uses can't be deleted.
+    // BIL-113: invoice_items.item_id references the item, so an item an invoice uses can't be deleted.
     public async Task ItemDelete_WhenUsedByInvoice_Fail()
     {
         var (_, customer, item, request, invoiceId) = await AddInvoiceWithOwnData("Sansa");
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Delete(item.Id)))!.Error!;
 
-        ErrorModel expectedError = new("Validation failure", "Can not delete (please clear all dependants) or update (item not found): invoice_lines_item_id", HttpStatusCode.BadRequest);
+        ErrorModel expectedError = new("Validation failure", "Can not delete (please clear all dependants) or update (item not found): invoice_items_item_id", HttpStatusCode.BadRequest);
         await expectedError.CheckErrors(error);
 
         InvoiceResponse getResponse = await GetInvoice(invoiceId);
