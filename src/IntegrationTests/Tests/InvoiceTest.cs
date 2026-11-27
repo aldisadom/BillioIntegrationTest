@@ -2293,13 +2293,27 @@ public partial class Tests
         await AssertOwnInvoice(getResponse, invoiceId, addRequest, customer, 2);
         await AssertLines(getResponse, mixed);
 
-        // One line asks for the first item's old version 1, the other has none: only that one gets its latest
+        // The second item gets a version 2. One line asks for the first item's old version 1, the other
+        // has none: only that one gets its own item's latest, 2
+        await _itemClient.Update(new ItemUpdateRequest()
+        {
+            Id = second.Id,
+            Name = second.Name,
+            Price = second.Price + 5,
+            Quantity = second.Quantity
+        });
+        ItemResponse secondAtVersion2 = await _itemClient.Get(second.Id);
+
         addRequest.Items[0].Version = 1;
         Guid mixedAddId = (await _invoiceClient.Add(addRequest)).Id;
 
         getResponse = await GetInvoice(mixedAddId);
         await AssertOwnInvoice(getResponse, mixedAddId, addRequest, customer, 3);
-        await AssertLines(getResponse, [(firstAtVersion1, 3, "Hold"), (second, 1, "The door")]);
+        await AssertLines(getResponse, [(firstAtVersion1, 3, "Hold"), (secondAtVersion2, 1, "The door")]);
+
+        // The earlier invoice keeps the second item at version 1
+        getResponse = await GetInvoice(invoiceId);
+        await AssertLines(getResponse, mixed);
 
         // Three invoices in this series, numbered 1 to 3
         await Assert.That((await _seriesClient.Get(customer.SeriesId)).NextNumber).IsEqualTo(4);
