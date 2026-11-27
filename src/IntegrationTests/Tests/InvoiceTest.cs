@@ -1870,12 +1870,10 @@ public partial class Tests
 
         getResponse = await _invoiceClient.Get(updateRequest.Id);
 
+        // The line shows the version it was saved with, and that version's name and price
+        ItemResponse sent = await _itemClient.Get(item2.Id, item2.Version);
         await Assert.That(getResponse).IsNotNull();
-        await Assert.That(getResponse!.Items)
-            .IsNotNull()
-            .And.Count().IsEqualTo(1);
-
-        await Assert.That(getResponse!.Items![0].Id).IsEquivalentTo(item2.Id);
+        await AssertLines(getResponse!, [(sent, item2.Quantity, null)]);
     }
 
     [Test]
@@ -2148,6 +2146,10 @@ public partial class Tests
         await AssertOwnInvoice(getResponse, invoiceId, request, customer);
         await AssertSingleLine(getResponse, item.Id, item.Name, item.Price, request.Items[0].Quantity, request.Items[0].Comments, 1);
 
+        // The list loads its invoice items in a query of its own: it shows version 1 too
+        InvoiceListResponse listResponse = await _invoiceClient.Get(new InvoiceGetRequest { CustomerId = customer.Id });
+        await AssertSingleLine(listResponse.Invoices.Single(i => i.Id == invoiceId), item.Id, item.Name, item.Price, request.Items[0].Quantity, request.Items[0].Comments, 1);
+
         // Saved with the version it has: the item's edit doesn't re-price the line
         InvoiceUpdateRequest updateRequest = UpdateRequestFromInvoice(getResponse);
         updateRequest.Items[0].Quantity = 4;
@@ -2228,6 +2230,65 @@ public partial class Tests
 
         await _invoiceClient.Delete(olderId);
         await _invoiceClient.Delete(latestId);
+        await _invoiceClient.Delete(firstInvoiceId);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
+    [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
+    public async Task InvoiceLinesKeepTheirOwnItemVersions_Valid_Success()
+    {
+        var (_, customer, first, request, firstInvoiceId) = await AddInvoiceWithOwnData("Hodor");
+        ItemResponse second = await AddOwnItem(customer.Id, "Ice_Hodor", 20);
+
+        await _itemClient.Update(new ItemUpdateRequest()
+        {
+            Id = first.Id,
+            Name = first.Name + "_new",
+            Price = first.Price + 5,
+            Quantity = first.Quantity
+        });
+        ItemResponse firstAtVersion1 = await _itemClient.Get(first.Id, 1);
+        ItemResponse firstAtVersion2 = await _itemClient.Get(first.Id);
+
+        // Without versions: each line takes its own item's latest, the first item 2 and the second 1
+        AddResponse invoiceAdd = await _invoiceClient.Add(new InvoiceAddRequest()
+        {
+            UserId = request.UserId,
+            SellerId = request.SellerId,
+            CustomerId = customer.Id,
+            Items =
+            [
+                new() { Id = first.Id, Quantity = 3, Comments = "Hold" },
+                new() { Id = second.Id, Quantity = 1, Comments = "The door" }
+            ],
+            DueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(6)),
+            CreatedDate = DateOnly.FromDateTime(DateTime.Now)
+        });
+
+        InvoiceResponse getResponse = await GetInvoice(invoiceAdd.Id);
+        await AssertLines(getResponse, [(firstAtVersion2, 3, "Hold"), (second, 1, "The door")]);
+
+        // Both at version 1
+        List<(ItemResponse item, decimal quantity, string? comments)> bothAtVersion1 =
+            [(firstAtVersion1, 3, "Hold"), (second, 1, "The door")];
+        await UpdateLines(getResponse, bothAtVersion1);
+        getResponse = await GetInvoice(invoiceAdd.Id);
+        await AssertLines(getResponse, bothAtVersion1);
+
+        // The first item at version 2 next to the second at version 1
+        List<(ItemResponse item, decimal quantity, string? comments)> mixed =
+            [(firstAtVersion2, 3, "Hold"), (second, 1, "The door")];
+        await UpdateLines(getResponse, mixed);
+        getResponse = await GetInvoice(invoiceAdd.Id);
+        await AssertLines(getResponse, mixed);
+
+        await _invoiceClient.Delete(invoiceAdd.Id);
         await _invoiceClient.Delete(firstInvoiceId);
     }
 
