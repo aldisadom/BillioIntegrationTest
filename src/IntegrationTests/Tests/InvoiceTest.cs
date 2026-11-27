@@ -674,7 +674,7 @@ public static class InvoiceTestDataSources
         {
             TestName = "Update line without a version",
             Error = Error("Please specify item version for {0}"),
-            Data = new() { OwnName = "Rickon", Update = true, Version = null }
+            Data = new() { OwnName = "Jojen", Update = true, Version = null }
         };
         yield return () => new()
         {
@@ -2194,7 +2194,7 @@ public partial class Tests
     [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
     public async Task InvoiceAddTakesItemVersion_Valid_Success()
     {
-        var (_, customer, item, request, firstInvoiceId) = await AddInvoiceWithOwnData("Robb");
+        var (_, customer, item, request, firstInvoiceId) = await AddInvoiceWithOwnData("Meera");
 
         ItemUpdateRequest itemUpdate = new()
         {
@@ -2291,8 +2291,9 @@ public partial class Tests
     {
         var (_, customer, item, request, invoiceId) = await AddInvoiceWithOwnData("Sansa");
 
+        // invoice_items.item_id references the item (BIL-113), so an item an invoice uses can't be deleted.
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Delete(item.Id)))!.Error!;
-        await new ErrorModel("Validation failure", $"Item id {item.Id} is used by invoices", HttpStatusCode.BadRequest).CheckErrors(error);
+        await new ErrorModel("Validation failure", "Can not delete (please clear all dependants) or update (item not found): invoice_items_item_id", HttpStatusCode.BadRequest).CheckErrors(error);
 
         // The item, its versions and the invoice are all still there
         ItemResponse itemAfter = await _itemClient.Get(item.Id);
@@ -2335,6 +2336,142 @@ public partial class Tests
         await Assert.That((await _itemClient.Get(item.Id)).CustomerId).IsEqualTo(customer.Id);
 
         await _invoiceClient.Delete(invoiceId);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
+    [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
+    // BIL-113: PUT /invoices upserts lines 1..n and deletes the lines above n, so reordering, adding
+    // a line at the end and removing lines all keep exactly the request's lines, in its order.
+    public async Task InvoiceUpdateLines_OrderKept_Success()
+    {
+        var (_, customer, first, request, invoiceId) = await AddInvoiceWithOwnData("Rickon");
+        ItemResponse second = await AddOwnItem(customer.Id, "Ice_Rickon", 20);
+        ItemResponse third = await AddOwnItem(customer.Id, "Oathkeeper_Rickon", 30);
+
+        InvoiceResponse getResponse = await GetInvoice(invoiceId);
+        await AssertOwnInvoice(getResponse, invoiceId, request, customer);
+        await AssertSingleLine(getResponse, first.Id, first.Name, first.Price, request.Items[0].Quantity, request.Items[0].Comments, 1);
+
+        List<(ItemResponse item, decimal quantity, string? comments)> reordered =
+            [(second, 2, "Ice"), (first, 1, "Longclaw")];
+        await UpdateLines(getResponse, reordered);
+        getResponse = await GetInvoice(invoiceId);
+        await AssertOwnInvoice(getResponse, invoiceId, request, customer);
+        await AssertLines(getResponse, reordered);
+
+        List<(ItemResponse item, decimal quantity, string? comments)> addedLast =
+            [(second, 2, "Ice"), (first, 1, "Longclaw"), (third, 5, "Oathkeeper")];
+        await UpdateLines(getResponse, addedLast);
+        getResponse = await GetInvoice(invoiceId);
+        await AssertOwnInvoice(getResponse, invoiceId, request, customer);
+        await AssertLines(getResponse, addedLast);
+
+        List<(ItemResponse item, decimal quantity, string? comments)> oneLeft = [(third, 7, null)];
+        await UpdateLines(getResponse, oneLeft);
+        getResponse = await GetInvoice(invoiceId);
+        await AssertOwnInvoice(getResponse, invoiceId, request, customer);
+        await AssertLines(getResponse, oneLeft);
+
+        await _invoiceClient.Delete(invoiceId);
+    }
+
+    [Test]
+    [DependsOn(nameof(InvoiceGetAll_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForCustomer_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_Valid_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagesOfOne_Success))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_PagePastTheLast_ReturnsLastPage))]
+    [DependsOn(nameof(InvoiceGetAllForSeller_NegativePage_ReturnsFirstPage))]
+    [DependsOn(nameof(InvoiceGetAllForUser_Valid_Success))]
+    // BIL-113: a list page loads the lines of all its invoices in one query and hands each invoice its
+    // own, so two invoices on one page each show their own lines and total.
+    public async Task InvoiceGetAllForCustomer_EachInvoiceItsOwnLines_Success()
+    {
+        var (_, customer, first, request, firstInvoiceId) = await AddInvoiceWithOwnData("Robb");
+        ItemResponse second = await AddOwnItem(customer.Id, "Ice_Robb", 20);
+        ItemResponse third = await AddOwnItem(customer.Id, "Oathkeeper_Robb", 30);
+
+        // Without versions: each invoice item takes its item's latest, version 1
+        AddResponse secondInvoice = await _invoiceClient.Add(new InvoiceAddRequest()
+        {
+            UserId = request.UserId,
+            SellerId = request.SellerId,
+            CustomerId = customer.Id,
+            Items =
+            [
+                new() { Id = third.Id, Quantity = 2, Comments = "Oathkeeper" },
+                new() { Id = second.Id, Quantity = 1, Comments = "Ice" }
+            ],
+            Comments = "Robb's second",
+            DueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(6)),
+            CreatedDate = DateOnly.FromDateTime(DateTime.Now)
+        });
+
+        InvoiceListResponse listResponse = await _invoiceClient.Get(new InvoiceGetRequest { CustomerId = customer.Id });
+
+        await Assert.That(listResponse.Invoices)
+            .IsNotNull()
+            .And.Count().IsEqualTo(2);
+        await AssertLines(listResponse.Invoices.Single(i => i.Id == firstInvoiceId),
+            [(first, request.Items[0].Quantity, request.Items[0].Comments)]);
+        await AssertLines(listResponse.Invoices.Single(i => i.Id == secondInvoice.Id),
+            [(third, 2, "Oathkeeper"), (second, 1, "Ice")]);
+
+        await _invoiceClient.Delete(secondInvoice.Id);
+        await _invoiceClient.Delete(firstInvoiceId);
+    }
+
+    private static async Task<ItemResponse> AddOwnItem(Guid customerId, string name, decimal price)
+    {
+        AddResponse itemAdd = await _itemClient.Add(new ItemAddRequest()
+        {
+            CustomerId = customerId,
+            Name = name,
+            Quantity = 9999,
+            Price = price
+        });
+
+        return await _itemClient.Get(itemAdd.Id);
+    }
+
+    // Each invoice item is saved with its item's version (PUT /invoices requires one).
+    private static async Task UpdateLines(InvoiceResponse invoice, List<(ItemResponse item, decimal quantity, string? comments)> lines)
+    {
+        InvoiceUpdateRequest updateRequest = UpdateRequestFromInvoice(invoice);
+        updateRequest.Items = lines.Select(l => new InvoiceItemRequest()
+        {
+            Id = l.item.Id,
+            Version = l.item.Version,
+            Quantity = l.quantity,
+            Comments = l.comments
+        }).ToList();
+
+        await _invoiceClient.Update(updateRequest);
+    }
+
+    private static async Task AssertLines(InvoiceResponse actual, List<(ItemResponse item, decimal quantity, string? comments)> expected)
+    {
+        await Assert.That(actual.Items)
+            .IsNotNull()
+            .And.Count().IsEqualTo(expected.Count);
+
+        for (int i = 0; i < expected.Count; i++)
+        {
+            await Assert.That(actual.Items![i].Id).IsEqualTo(expected[i].item.Id);
+            await Assert.That(actual.Items![i].Version).IsEqualTo(expected[i].item.Version);
+            await Assert.That(actual.Items![i].Name).IsEqualTo(expected[i].item.Name);
+            await Assert.That(actual.Items![i].Price).IsEquivalentTo(expected[i].item.Price);
+            await Assert.That(actual.Items![i].Quantity).IsEquivalentTo(expected[i].quantity);
+            await Assert.That(actual.Items![i].Comments).IsEqualTo(expected[i].comments);
+        }
+
+        await Assert.That(actual.TotalPrice).IsEquivalentTo(expected.Sum(l => l.item.Price * l.quantity));
     }
 
     private static InvoiceAddRequest NewNumberingInvoice(Guid userId, Guid sellerId, Guid customerId, Guid itemId)
