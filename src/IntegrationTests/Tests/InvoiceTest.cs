@@ -2257,7 +2257,7 @@ public partial class Tests
         ItemResponse firstAtVersion2 = await _itemClient.Get(first.Id);
 
         // Without versions: each line takes its own item's latest, the first item 2 and the second 1
-        AddResponse invoiceAdd = await _invoiceClient.Add(new InvoiceAddRequest()
+        InvoiceAddRequest addRequest = new()
         {
             UserId = request.UserId,
             SellerId = request.SellerId,
@@ -2267,28 +2267,45 @@ public partial class Tests
                 new() { Id = first.Id, Quantity = 3, Comments = "Hold" },
                 new() { Id = second.Id, Quantity = 1, Comments = "The door" }
             ],
+            Comments = "Hodor's second",
             DueDate = DateOnly.FromDateTime(DateTime.Now.AddDays(6)),
             CreatedDate = DateOnly.FromDateTime(DateTime.Now)
-        });
+        };
+        Guid invoiceId = (await _invoiceClient.Add(addRequest)).Id;
 
-        InvoiceResponse getResponse = await GetInvoice(invoiceAdd.Id);
+        InvoiceResponse getResponse = await GetInvoice(invoiceId);
+        await AssertOwnInvoice(getResponse, invoiceId, addRequest, customer, 2);
         await AssertLines(getResponse, [(firstAtVersion2, 3, "Hold"), (second, 1, "The door")]);
 
         // Both at version 1
         List<(ItemResponse item, decimal quantity, string? comments)> bothAtVersion1 =
             [(firstAtVersion1, 3, "Hold"), (second, 1, "The door")];
         await UpdateLines(getResponse, bothAtVersion1);
-        getResponse = await GetInvoice(invoiceAdd.Id);
+        getResponse = await GetInvoice(invoiceId);
+        await AssertOwnInvoice(getResponse, invoiceId, addRequest, customer, 2);
         await AssertLines(getResponse, bothAtVersion1);
 
         // The first item at version 2 next to the second at version 1
         List<(ItemResponse item, decimal quantity, string? comments)> mixed =
             [(firstAtVersion2, 3, "Hold"), (second, 1, "The door")];
         await UpdateLines(getResponse, mixed);
-        getResponse = await GetInvoice(invoiceAdd.Id);
+        getResponse = await GetInvoice(invoiceId);
+        await AssertOwnInvoice(getResponse, invoiceId, addRequest, customer, 2);
         await AssertLines(getResponse, mixed);
 
-        await _invoiceClient.Delete(invoiceAdd.Id);
+        // One line asks for the first item's old version 1, the other has none: only that one gets its latest
+        addRequest.Items[0].Version = 1;
+        Guid mixedAddId = (await _invoiceClient.Add(addRequest)).Id;
+
+        getResponse = await GetInvoice(mixedAddId);
+        await AssertOwnInvoice(getResponse, mixedAddId, addRequest, customer, 3);
+        await AssertLines(getResponse, [(firstAtVersion1, 3, "Hold"), (second, 1, "The door")]);
+
+        // Three invoices in this series, numbered 1 to 3
+        await Assert.That((await _seriesClient.Get(customer.SeriesId)).NextNumber).IsEqualTo(4);
+
+        await _invoiceClient.Delete(mixedAddId);
+        await _invoiceClient.Delete(invoiceId);
         await _invoiceClient.Delete(firstInvoiceId);
     }
 
