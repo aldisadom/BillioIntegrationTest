@@ -2325,7 +2325,7 @@ public partial class Tests
         var (_, customer, item, _, invoiceId) = await AddInvoiceWithOwnData("Bran");
 
         // The invoice's item can't be deleted while the invoice uses it, so both keep the customer.
-        // Postgres reports the items constraint first (fk_invoice_customers_id, named so in migration 006).
+        // Postgres reports the items' foreign key (fk_invoice_customers_id, from migration 006) before the invoices'.
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _customerClient.Delete(customer.Id)))!.Error!;
 
         ErrorModel expectedError = new("Validation failure", "Can not delete (please clear all dependants) or update (item not found): invoice_customers_id", HttpStatusCode.BadRequest);
