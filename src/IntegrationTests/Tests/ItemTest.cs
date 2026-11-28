@@ -410,7 +410,7 @@ public partial class Tests
         await _itemClient.Delete(addResponse.Id);
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(addResponse.Id)))!.Error!;
-        ErrorModel expectedError = new("Entity not found", $"Invoice item:{addResponse.Id} not found", HttpStatusCode.NotFound);
+        ErrorModel expectedError = new("Entity not found", $"Item:{addResponse.Id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
 
         // Its versions go with it
@@ -426,7 +426,7 @@ public partial class Tests
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Delete(id)))!.Error!;
 
-        ErrorModel expectedError = new("Entity not found", $"Invoice item:{id} not found", HttpStatusCode.NotFound);
+        ErrorModel expectedError = new("Entity not found", $"Item:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
 
@@ -620,7 +620,7 @@ public partial class Tests
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(id, 99)))!.Error!;
 
-        ErrorModel expectedError = new("Entity not found", $"Invoice item:{id} version 99 not found", HttpStatusCode.NotFound);
+        ErrorModel expectedError = new("Entity not found", $"Item:{id} version 99 not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
 
@@ -632,7 +632,7 @@ public partial class Tests
 
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.GetVersions(id)))!.Error!;
 
-        ErrorModel expectedError = new("Entity not found", $"Invoice item:{id} not found", HttpStatusCode.NotFound);
+        ErrorModel expectedError = new("Entity not found", $"Item:{id} not found", HttpStatusCode.NotFound);
         await expectedError.CheckErrors(error);
     }
 
@@ -654,7 +654,7 @@ public partial class Tests
         ErrorModel error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Update(updateRequest)))!.Error!;
 
         if (item.Id != default)
-            testCase.Error!.ExtendedMessage = $"Invoice item:{updateRequest.Id} not found";
+            testCase.Error!.ExtendedMessage = $"Item:{updateRequest.Id} not found";
 
         await testCase.CheckErrors(error);
     }

@@ -685,7 +685,7 @@ public static class InvoiceTestDataSources
         yield return () => new()
         {
             TestName = "Update line with a version the item doesn't have",
-            Error = Error("Item id {0} has no version 99"),
+            Error = Error("Key does not exist: invoice_items_item_id_version"),
             Data = new() { OwnName = "Lyanna", Update = true, Version = 99 }
         };
         yield return () => new()
@@ -697,7 +697,7 @@ public static class InvoiceTestDataSources
         yield return () => new()
         {
             TestName = "Add line with a version the item doesn't have",
-            Error = Error("Item id {0} has no version 99"),
+            Error = Error("Key does not exist: invoice_items_item_id_version"),
             Data = new() { OwnName = "Brandon", Update = false, Version = 99 }
         };
     }
@@ -2401,7 +2401,7 @@ public partial class Tests
         await _itemClient.Delete(item.Id);
 
         error = (await Assert.ThrowsAsync<ClientAPIException>(() => _itemClient.Get(item.Id)))!.Error!;
-        await new ErrorModel("Entity not found", $"Invoice item:{item.Id} not found", HttpStatusCode.NotFound).CheckErrors(error);
+        await new ErrorModel("Entity not found", $"Item:{item.Id} not found", HttpStatusCode.NotFound).CheckErrors(error);
     }
 
     [Test]
