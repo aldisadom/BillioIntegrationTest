@@ -43,6 +43,15 @@ public record InvoiceIdsUpdateTestModel
     public List<InvoiceItemTestModel> Items { get; set; } = [];
 }
 
+// A line version an invoice add (POST) or update (PUT) rejects. OwnName names the test's own user,
+// seller, customer and item, so it must differ between cases.
+public record InvoiceLineVersionTestModel
+{
+    public string OwnName { get; set; } = string.Empty;
+    public bool Update { get; set; }
+    public int? Version { get; set; }
+}
+
 public record InvoiceStatusChangeTestModel
 {
     public InvoiceStatus StartStatus { get; set; }
