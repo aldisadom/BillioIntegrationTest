@@ -660,7 +660,8 @@ public static class InvoiceTestDataSources
         };
     }
 
-    // ExtendedMessage has {0} for the line's item id, which the test creates
+    // The validator messages have {0} for the line's item id, which the test creates; the
+    // foreign key message for an unknown version names the constraint, not the item
     public static IEnumerable<Func<TestCaseError<InvoiceLineVersionTestModel>>> LineVersionDataInvalid()
     {
         static ErrorModel Error(string extendedMessage) => new()
@@ -2255,6 +2256,9 @@ public partial class Tests
         });
         ItemResponse firstAtVersion1 = await _itemClient.Get(first.Id, 1);
         ItemResponse firstAtVersion2 = await _itemClient.Get(first.Id);
+        await Assert.That(firstAtVersion1.Version).IsEqualTo(1);
+        await Assert.That(firstAtVersion2.Version).IsEqualTo(2);
+        await Assert.That(firstAtVersion2.Price).IsEqualTo(first.Price + 5);
 
         // Without versions: each line takes its own item's latest, the first item 2 and the second 1
         InvoiceAddRequest addRequest = new()
@@ -2303,6 +2307,10 @@ public partial class Tests
             Quantity = second.Quantity
         });
         ItemResponse secondAtVersion2 = await _itemClient.Get(second.Id);
+        await Assert.That(second.Version).IsEqualTo(1);
+        await Assert.That(secondAtVersion2.Version).IsEqualTo(2);
+        await Assert.That(secondAtVersion2.Price).IsEqualTo(second.Price + 5);
+        await Assert.That(secondAtVersion2.Name).IsEqualTo(second.Name);
 
         addRequest.Items[0].Version = 1;
         Guid mixedAddId = (await _invoiceClient.Add(addRequest)).Id;
